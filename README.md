@@ -85,7 +85,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   ```
   
   __*`clip`*__  
-  Clip that was padded with the pad function. Any format.
+  Padded clip. Any format.
   
   __*`left`*, *`right`*, *`top`*, *`bottom`* (optional)__  
   Optionally you can also enter crop values manually.
@@ -106,7 +106,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Tile size of a single tile in pixel.
 
   __*`overlap`*__  
-  Overlap from one tile to the next. When overlap is increased the tile size is not altered, so the amount of tiles per frame increases.
+  Overlap from one tile to the next. When overlap is increased the tile size is not altered, so the amount of tiles per frame increases.  
   Can be a single value or a list for vertical and horizontal `[16, 16]`.
 
   __*`padding`*__  
@@ -123,10 +123,10 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   ```
 
   __*`clip`*__  
-  Clip that was padded with the pad function. Any format.
+  Tiled clip. Any format.
   
   __*`fade`*__  
-  If fade is True, the overlap will be used to feather/blend between the tiles.
+  If fade is True, the overlap will be used to feather/blend between the tiles.  
   If fade is False, the overlap will be cropped.
 
   __*`full_width`*, *`full_height`*, *`overlap`* (optional)__  
@@ -150,14 +150,14 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Maximum border fill thickness in pixels.
 
   __*`offset`*__  
-  Offsets the detected fill area by an extra amount in pixels. Useful if the borders are slightly blurry.
+  Offsets the detected fill area by an extra amount in pixels. Useful if the borders are slightly blurry.  
   Does not offset sides that have detected 0 pixels.
 
   __*`color`*__  
   Source clip border color in 8-bit range `[16,128,128]`.
 
   __*`tol`*__, (__*`tol_c`*__)  
-  Tolerance and optionally tolerance chroma to set how much the source clip border color can deviate.
+  Tolerance and optionally tolerance chroma to set how much the source clip border color is fluctuating.  
   Tolerance chroma is optional and is the same as tolerance if not set. 
 
   __*`fill`*__  
@@ -199,7 +199,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Windowed clip. Any format.
   
   __*`fade`*__  
-  If fade is True, the overlap will be used to crossfade between the windows.
+  If fade is True, the overlap will be used to crossfade between the windows.  
   If fade is False, the overlap will be trimmed.
 
   __*`full_length`*, *`window_length`*, *`overlap`* (optional)__  
@@ -226,7 +226,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Padding mode can be `mirror`, `repeat`, `black`, or a custom color in 8 bit scale `[128, 128, 128]`.
 
   __*`relative`*__  
-  If relative is False `length` is the total length of the output clip.
+  If relative is False `length` is the total length of the output clip.  
   If relative is True, `length` is the number of frames to append at the end.
 
 <br />
