@@ -180,7 +180,7 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
         raise ValueError("vs_tiletools.autofill: Tolerance can not be negative.")
     if tol_c is not None and tol_c < 0:
         raise ValueError("vs_tiletools.autofill: Chroma tolerance can not negative.")
-    if min(left, right, top, bottom, offset) < 0:
+    if min(left, right, top, bottom) < 0:
         raise ValueError("vs_tiletools.autofill: Max fill values can not be negative.")
     if not any((left, right, top, bottom)):
         return clip
@@ -191,12 +191,12 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
     tol_c = tol if tol_c is None else tol_c
 
     # check subsampling
-    _check_modulus(left,   sub_w, "Left maximum",   "autofill", clip_format)
-    _check_modulus(right,  sub_w, "Right maximum",  "autofill", clip_format)
-    _check_modulus(top,    sub_h, "Top maximum",    "autofill", clip_format)
-    _check_modulus(bottom, sub_h, "Bottom maximum", "autofill", clip_format)
-    _check_modulus(offset, sub_w, "Offset",         "autofill", clip_format)
-    _check_modulus(offset, sub_h, "Offset",         "autofill", clip_format)
+    _check_modulus(left,        sub_w, "Left maximum",   "autofill", clip_format)
+    _check_modulus(right,       sub_w, "Right maximum",  "autofill", clip_format)
+    _check_modulus(top,         sub_h, "Top maximum",    "autofill", clip_format)
+    _check_modulus(bottom,      sub_h, "Bottom maximum", "autofill", clip_format)
+    _check_modulus(abs(offset), sub_w, "Offset",         "autofill", clip_format)
+    _check_modulus(abs(offset), sub_h, "Offset",         "autofill", clip_format)
 
     # convert to integer if needed
     if clip_format.sample_type != vs.INTEGER:
@@ -224,12 +224,12 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
         l = int(p.get('CropLeftValue', 0))
         r = int(p.get('CropRightValue', 0))
         
-        # increase fill by extra if not 0
+        # shift fill by offset if not 0
         if offset:
-            if t > 0: t += offset
-            if b > 0: b += offset
-            if l > 0: l += offset
-            if r > 0: r += offset
+            if t > 0: t = max(0, t + offset)
+            if b > 0: b = max(0, b + offset)
+            if l > 0: l = max(0, l + offset)
+            if r > 0: r = max(0, r + offset)
     
         # fill
         if (t | b | l | r) == 0:
