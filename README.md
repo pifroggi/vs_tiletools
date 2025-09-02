@@ -17,16 +17,15 @@
 
 
 
+# vs_tiletools
+A collection of spatial and temporal tiling and padding utilities for VapourSynth. The original idea was just a tiling function to make AI filters less VRAM intensive and to provide additional options that inbuild solutions might not. Since then the scope expanded. The functions often come in pairs. One to do the thing and another to automatically reverse it. Basic example:
+```python
+import vs_tiletools
+clip = vs_tiletools.tile(clip, width=256, height=256) # tiles frames into 256x256 patches
+clip = core.someheavyfilter.AIUpscale(clip)           # placefolder resource intensive filter
+clip = vs_tiletools.untile(clip)                      # reassembles the tiles into full frames
+```
 
-
-
-
-
-
-
-
-
-# Collection of Tiling Related Functions for VapourSynth
 
 <br />
 
