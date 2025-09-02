@@ -28,18 +28,22 @@
 
 # Collection of Tiling Related Functions for VapourSynth
 
+<br />
+
 ## Table of Contents
 * [Requirements](#requirements)
 * [Setup](#setup)
-* [Functions](#functions)
-  * [pad](#pad) pad with various paddig modes
-  * [crop](#crop) autocrops what was padded before, supports clips that have been resized
-  * [tile](#tile) split clip into tiles of fixed dimensions
-  * [untile](#untile) auto reassemble a tiled clip, supports clips that have been resized
-  * [tpad](#tpad) temporal pad with various padding modes
-  * [window](#window) turns clip into segments of fixed length with overlap
-  * [unwindow](#unwindow) removes previously added overlaps or crossfades them
-  * [autofill](#autofill) detect solid borders and fill them
+* [Spatial Functions](#spatial-functions)
+  * [Pad](#pad) - Pad a clip with various padding modes
+  * [Crop](#crop) - Auto crops a padded clip, even if it has been resized
+  * [Tile](#tile) - Split clip into tiles of fixed dimensions
+  * [Untile](#untile) - Auto reassemble a tiled clip, even if the tiles have been resized
+  * [Autofill](#autofill) - Detect solid borders and fill them with various fill modes
+* [Temporal Functions](#temporal-functions)
+  * [TPad](#tpad) - Temporally pads with various padding modes
+  * [Window](#window) - Turns clip into segments of fixed temporal window length with overlap
+  * [Unwindow](#unwindow) - Removes added overlaps from a windowed clip or crossfades them
+  * [Crossfade](#crossfade) - Crossfades between two clips
 
 <br />
 
@@ -53,7 +57,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
 <br />
 
-## Functions
+## Spatial Functions
 * ### Pad
   Pads a clip with various padding modes.
   ```python
@@ -76,8 +80,8 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Automatically crops what was added with the pad function, even if the clip was since resized.
   ```python
   import vs_tiletools
-  clip = vs_tiletools.crop(clip) # automatic mode
-  clip = vs_tiletools.crop(clip, left=0, right=0, top=0, bottom=0) # manual mode
+  clip = vs_tiletools.crop(clip) # automatic
+  clip = vs_tiletools.crop(clip, left=0, right=0, top=0, bottom=0) # manual
   ```
   
   __*`clip`*__  
@@ -108,14 +112,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   __*`padding`*__  
   How to handle tiles that are smaller than tile size. These can be padded with modes `mirror`, `repeat`, `fillmargins`, `black`, a custom color in 8 bit scale `[128, 128, 128]`, or just discarded with `discard`.
 
-
-
-
-
-
-
-
-
+<br />
 
 * ### Untile
   Automatically reassembles a tiled clip, even if the tiles were since resized.
@@ -136,9 +133,39 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   If you have not used the tile function on the clip, you can also enter untile parameters manually. Needed is the full assembled frame dimensions and the overlap between tiles. In manual mode you have to account for resized or discarded tiles yourself.  
   Tip: If tiles were discarded, the full_width/full_height are now smaller and a multiple of the original tile size.  
   Tip: If tiles were resized 2x, simply double all values.
-  
+
 <br />
 
+* ### Autofill
+  Detects uniform colored borders (like letterboxes/pillarboxes) and fills them with various filling modes.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16,128,128], tol=16, tol_c=None, fill="mirror")
+  ```
+  
+  __*`clip`*__  
+  Source clip. Only YUV and GRAY formats.
+
+  __*`left`*, *`right`*, *`top`*, *`bottom`*__  
+  Maximum border fill thickness in pixels.
+
+  __*`offset`*__  
+  Offsets the detected fill area by an extra amount in pixels. Useful if the borders are slightly blurry.
+  Does not offset sides that have detected 0 pixels.
+
+  __*`color`*__  
+  Source clip border color in 8-bit range `[16,128,128]`.
+
+  __*`tol`*__, (__*`tol_c`*__)  
+  Tolerance and optionally tolerance chroma to set how much the source clip border color can deviate.
+  Tolerance chroma is optional and is the same as tolerance if not set. 
+
+  __*`fill`*__  
+  Filling mode can be `mirror`, `repeat`, `fillmargins`, `black`, or a custom color in 8 bit scale `[128, 128, 128]`.
+
+<br />
+
+## Temporal Functions
 * ### Window
   Segments a clip into temporal windows with a fixed length and adds overlap on the tail end of each window. In combination with the unwindow function, the overlap can then be used to crossfade between windows and eliminate sudden jumps/seams that can occur on window based functions like [vs_undistort](https://github.com/pifroggi/vs_undistort).
   ```python
@@ -212,43 +239,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   ```
   
   __*`clipa`*, *`clipb`*__  
-  Input clips to blend. Any format, as long as they match.
+  Input clips to crossfade. Any format, as long as they match.
 
   __*`length`*__  
   Length of the crossfade.
-
-<br />
-
-* ### AutoFill
-  Detects uniform-colored borders (like letterboxes/pillarboxes) and fills them with various filling modes.
-  ```python
-  import vs_tiletools
-  clip = vs_tiletools.autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16,128,128], tol=16, tol_c=None, fill="mirror")
-  ```
-  
-  __*`clip`*__  
-  Source clip. Only YUV and GRAY formats.
-
-  __*`left`*, *`right`*, *`top`*, *`bottom`*__  
-  Maximum border fill thickness in pixels.
-
-  __*`offset`*__  
-  Offsets the detected fill area by an extra amount in pixels. Useful if the borders are slightly blurry.
-  Does not offset sides that have detected 0 pixels.
-
-  __*`color`*__  
-  Source clip border color in 8-bit range `[16,128,128]`.
-
-  __*`tol`*__, (__*`tol_c`*__)  
-  Tolerance and optionally tolerance chroma to set how much the source clip border color can deviate.
-  Tolerance chroma is optional and is the same as tolerance if not set. 
-
-  __*`fill`*__  
-  Filling mode can be `mirror`, `repeat`, `fillmargins`, `black`, or a custom color in 8 bit scale `[128, 128, 128]`.
-
-
-
-
-
-
-
