@@ -17,11 +17,13 @@
 
 
 
-# vs_tiletools
-A collection of spatial and temporal tiling and padding utilities for VapourSynth. The original idea was just a tiling function to make AI filters less VRAM intensive and to provide additional options that inbuild solutions might not. Since then the scope expanded. The functions often come in pairs. One to do the thing and another to automatically reverse it. Basic example:
+# Tiling and Padding functions for VapourSynth
+A collection of spatial and temporal tiling and padding utilities for VapourSynth. The original idea was just a tiling function to make AI filters less VRAM-hungry and to provide additional options that built-in solutions might not. Over time, related functions were added.
+
+The functions often come in pairs, with one doing a thing and the other inversing it. For example:
 ```python
 import vs_tiletools
-clip = vs_tiletools.tile(clip, width=256, height=256) # tiles frames into 256x256 patches
+clip = vs_tiletools.tile(clip, width=256, height=256) # splits frames into 256x256 tiles
 clip = core.someheavyfilter.AIUpscale(clip)           # placefolder resource intensive filter
 clip = vs_tiletools.untile(clip)                      # reassembles the tiles into full frames
 ```
@@ -33,15 +35,15 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
 * [Requirements](#requirements)
 * [Setup](#setup)
 * [Spatial Functions](#spatial-functions)
-  * [Pad](#pad) - Pad a clip with various padding modes
-  * [Crop](#crop) - Auto crops a padded clip, even if it has been resized
-  * [Tile](#tile) - Split clip into tiles of fixed dimensions
-  * [Untile](#untile) - Auto reassemble a tiled clip, even if the tiles have been resized
-  * [Autofill](#autofill) - Detect solid borders and fill them with various fill modes
+  * [Tile](#tile) - Splits each frame into tiles of fixed dimensions
+  * [Untile](#untile) - Auto reassembles tiles from `tile()`, even if resized
+  * [Pad](#pad) - Pads a clip with various padding modes
+  * [Crop](#crop) - Auto crops padded clip from `pad()`, even if resized
+  * [Autofill](#autofill) - Auto detects borders and fills them with various fill modes
 * [Temporal Functions](#temporal-functions)
+  * [Window](#window) - Segments a clip into temporal windows with overlap
+  * [Unwindow](#unwindow) - Auto removes or crossfades overlaps added by `window()`
   * [TPad](#tpad) - Temporally pads with various padding modes
-  * [Window](#window) - Turns clip into segments of fixed temporal window length with overlap
-  * [Unwindow](#unwindow) - Removes added overlaps from a windowed clip or crossfades them
   * [Crossfade](#crossfade) - Crossfades between two clips
 
 <br />
@@ -57,42 +59,8 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 <br />
 
 ## Spatial Functions
-* ### Pad
-  Pads a clip with various padding modes.
-  ```python
-  import vs_tiletools
-  clip = vs_tiletools.pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror")
-  ```
-  
-  __*`clip`*__  
-  Clip to be padded. Any format.
-  
-  __*`left`*, *`right`*, *`top`*, *`bottom`*__  
-  Padding amount in pixel.
-  
-  __*`mode`*__  
-  Padding mode can be `mirror`, `repeat`, `fillmargins`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
-
-<br />
-
-* ### Crop
-  Automatically crops padding added by pad(), even if the clip was since resized.
-  ```python
-  import vs_tiletools
-  clip = vs_tiletools.crop(clip) # automatic
-  clip = vs_tiletools.crop(clip, left=0, right=0, top=0, bottom=0) # manual
-  ```
-  
-  __*`clip`*__  
-  Padded clip. Any format.
-  
-  __*`left`*, *`right`*, *`top`*, *`bottom`* (optional)__  
-  Optionally you can also enter crop values manually.
-
-<br />
-
 * ### Tile
-  Splits a clip into tiles of fixed dimensions to reduce resource requirements. Outputs a clip with all tiles in order.
+  Splits each frame into tiles of fixed dimensions to reduce resource requirements. Outputs a clip with all tiles in order.
   ```python
   import vs_tiletools
   clip = vs_tiletools.tile(clip, width=256, height=256, overlap=16, padding="mirror")
@@ -114,7 +82,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 <br />
 
 * ### Untile
-  Automatically reassembles a clip tiled with tile(), even if tiles were since resized.
+  Automatically reassembles a clip tiled with `tile()`, even if tiles were since resized.
   ```python
   import vs_tiletools
   clip = vs_tiletools.untile(clip, fade=False) # automatic
@@ -132,6 +100,40 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   You can also enter untile parameters manually. Needed is the full assembled frame dimensions and the overlap between tiles. In manual mode you have to account for resized or discarded tiles yourself.  
   __Tip:__ If tiles were discarded, the full_width/full_height are now smaller and a multiple of the original tile size.  
   __Tip:__ If tiles were resized 2x, simply double all values.
+
+<br />
+
+* ### Pad
+  Pads a clip with various padding modes.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror")
+  ```
+  
+  __*`clip`*__  
+  Clip to be padded. Any format.
+  
+  __*`left`*, *`right`*, *`top`*, *`bottom`*__  
+  Padding amount in pixel.
+  
+  __*`mode`*__  
+  Padding mode can be `mirror`, `repeat`, `fillmargins`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
+
+<br />
+
+* ### Crop
+  Automatically crops padding added by `pad()`, even if the clip was since resized.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.crop(clip) # automatic
+  clip = vs_tiletools.crop(clip, left=0, right=0, top=0, bottom=0) # manual
+  ```
+  
+  __*`clip`*__  
+  Padded clip. Any format.
+  
+  __*`left`*, *`right`*, *`top`*, *`bottom`* (optional)__  
+  Optionally you can also enter crop values manually.
 
 <br />
 
@@ -155,8 +157,8 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   __*`color`*__  
   Source clip border color in 8-bit scale `[16,128,128]`.
 
-  __*`tol`*__, (__*`tol_c`*__)  
-  Tolerance to account for fluctuations in border color.
+  __*`tol`*__, (*`tol_c`*)  
+  Tolerance to account for fluctuations in border color.  
   Tolerance chroma is optional and defaults to `tol` if not set. 
 
   __*`fill`*__  
@@ -169,7 +171,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Segments a clip into temporal windows with a fixed length and adds overlap on the tail end of each window. In combination with the unwindow function, the overlap can then be used to crossfade between windows and eliminate sudden jumps/seams that can occur on window based functions like [vs_undistort](https://github.com/pifroggi/vs_undistort).
   ```python
   import vs_tiletools
-  clip = window(clip, length=100, overlap=10, padding="mirror")
+  clip = window(clip, length=20, overlap=5, padding="mirror")
   ```
   
   __*`clip`*__  
@@ -187,7 +189,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 <br />
 
 * ### Unwindow
-  Automatically removes the overlap from a clip from window() and optionally uses it to crossfade between windows.
+  Automatically removes the overlap added by `window()` and optionally uses it to crossfade between windows.
   ```python
   import vs_tiletools
   clip = vs_tiletools.unwindow(clip, fade=False) # automatic
@@ -225,13 +227,13 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Padding mode can be `mirror`, `repeat`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
 
   __*`relative`*__  
-  If relative is False `length` is the total length of the output clip.  
+  If relative is False, `length` is the total length of the output clip.  
   If relative is True, `length` is the number of frames to append at the end.
 
 <br />
 
 * ### Crossfade
-  Crossfades between two clips (without FrameEval/ModifyFrame).
+  Crossfades between two clips.
   ```python
   import vs_tiletools
   clip = vs_tiletools.crossfade(clipa, clipb, length=10)
