@@ -72,12 +72,12 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Padding amount in pixel.
   
   __*`mode`*__  
-  Padding mode can be `mirror`, `repeat`, `fillmargins`, `black`, or a custom color in 8 bit scale `[128, 128, 128]`.
+  Padding mode can be `mirror`, `repeat`, `fillmargins`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
 
 <br />
 
 * ### Crop
-  Automatically crops what was added with the pad function, even if the clip was since resized.
+  Automatically crops padding added by pad(), even if the clip was since resized.
   ```python
   import vs_tiletools
   clip = vs_tiletools.crop(clip) # automatic
@@ -100,14 +100,14 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   ```
   
   __*`clip`*__  
-  Clip that should be tiled. Any format.
+  Clip to tile. Any format.
   
   __*`width`*, *`height`*__  
   Tile size of a single tile in pixel.
 
   __*`overlap`*__  
   Overlap from one tile to the next. When overlap is increased the tile size is not altered, so the amount of tiles per frame increases.  
-  Can be a single value or a list for vertical and horizontal `[16, 16]`.
+  Can be a single value or a pair for vertical and horizontal `[16, 16]`.
 
   __*`padding`*__  
   How to handle tiles that are smaller than tile size. These can be padded with modes `mirror`, `repeat`, `fillmargins`, `black`, a custom color in 8 bit scale `[128, 128, 128]`, or just discarded with `discard`.
@@ -115,7 +115,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 <br />
 
 * ### Untile
-  Automatically reassembles a tiled clip, even if the tiles were since resized.
+  Automatically reassembles a clip tiled with tile(), even if tiles were since resized.
   ```python
   import vs_tiletools
   clip = vs_tiletools.untile(clip, fade=False) # automatic
@@ -147,18 +147,18 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Source clip. Only YUV formats are supported.
 
   __*`left`*, *`right`*, *`top`*, *`bottom`*__  
-  Maximum border fill thickness in pixels.
+  Maximum border fill amount in pixels.
 
   __*`offset`*__  
   Offsets the detected fill area by an extra amount in pixels. Useful if the borders are slightly blurry.  
   Does not offset sides that have detected 0 pixels.
 
   __*`color`*__  
-  Source clip border color in 8-bit range `[16,128,128]`.
+  Source clip border color in 8-bit scale `[16,128,128]`.
 
   __*`tol`*__, (__*`tol_c`*__)  
-  Tolerance and optionally tolerance chroma to set how much the source clip border color is fluctuating.  
-  Tolerance chroma is optional and is the same as tolerance if not set. 
+  Tolerance to account for fluctuations in border color.
+  Tolerance chroma is optional and defaults to `tol` if not set. 
 
   __*`fill`*__  
   Filling mode can be `mirror`, `repeat`, `fillmargins`, `black`, or a custom color in 8 bit scale `[128, 128, 128]`.
@@ -180,15 +180,15 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Temporal window length.
 
   __*`overlap`*__  
-  Overlap from one window to the next. When overlap is increased the temporal window length is not altered, so the total amount of windows per clip increases.
+  Overlap from one window to the next. When overlap is increased, the temporal window length is not altered, so the total amount of windows per clip increases.
 
   __*`padding`*__  
-  How to handle windows that are smaller than length. These can be padded with modes `mirror`, `repeat`, `black`, a custom color in 8 bit scale `[128, 128, 128]`, discarded with `discard`, or left as is with `None`.
+  How to handle windows that are smaller than length. These can be padded with modes `mirror`, `repeat`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, discarded with `discard`, or left as is with `None`.
   
 <br />
 
 * ### Unwindow
-  Automatically removes the overlap from a windowed clip and optionally uses it to crossfade between windows.
+  Automatically removes the overlap from a clip from window() and optionally uses it to crossfade between windows.
   ```python
   import vs_tiletools
   clip = vs_tiletools.unwindow(clip, fade=False) # automatic
@@ -223,7 +223,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Total length of padded clip, or number of frames to add, depending on `relative`.
 
   __*`mode`*__  
-  Padding mode can be `mirror`, `repeat`, `black`, or a custom color in 8 bit scale `[128, 128, 128]`.
+  Padding mode can be `mirror`, `repeat`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
 
   __*`relative`*__  
   If relative is False `length` is the total length of the output clip.  
