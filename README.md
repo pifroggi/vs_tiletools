@@ -203,8 +203,8 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   If fade is False, the overlap will be trimmed.
 
   __*`full_length`*, *`window_length`*, *`overlap`* (optional)__  
-  If you have not used the window function on the clip, or the frame props are no longer available, you can also enter unwindow parameters manually. Needed is the full assembled clip length and the overlap between windows. In manual mode you have to account for a discarded window yourself.  
-  Tip: If the last window was discarded, the full_length is now smaller and a multiple of the original temporal window size.  
+  You can also enter unwindow parameters manually. Needed is the full assembled clip length and the overlap between windows. In manual mode you have to account for a discarded window yourself.  
+  Tip: If the last window was discarded, the full_length is now smaller and a multiple of window_length.  
   Tip: If the windowed clip was interpolated to 2x, simply double all values.
 
 <br />
