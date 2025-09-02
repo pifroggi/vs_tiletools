@@ -204,7 +204,7 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
         clip = core.resize.Point(clip, format=clip_format_int.id)
 
     # compute fill amount
-    y, u, v    = map(int, color)
+    y, u, v    = map(int, color) # no color nomalization, cropvalues takes 8bit and scales
     color_low  = [_clamp8(y - tol), _clamp8(u - tol_c), _clamp8(v - tol_c)]
     color_high = [_clamp8(y + tol), _clamp8(u + tol_c), _clamp8(v + tol_c)]
     clip       = core.acrop.CropValues(clip, top=top, bottom=bottom, left=left, right=right, color=color_low, color_second=color_high)
@@ -212,7 +212,7 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
     # fill border mode or solid color
     fb = isinstance(fill, str) and fill in fb_modes
     if not fb:
-        fill_color = _normalize_color(fill, clip_format, "autofill")
+        fill_color = _normalize_color(fill, clip.format, "autofill")
         if fill_color is False:
             raise TypeError("vs_tiletools.autofill: Fill must be 'mirror', 'repeat', 'fillmargins', 'black', or custom color values [128, 128, 128].")
 
