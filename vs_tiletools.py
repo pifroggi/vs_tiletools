@@ -29,10 +29,10 @@ def _normalize_color(mode, clip_format, function):
     sample_type = clip_format.sample_type
 
     # broadcast single value across planes
-    if len(raw_vals) == 1:
-        raw_vals = raw_vals * num_planes
-    elif len(raw_vals) != num_planes:
-        return False
+    if len(raw_vals) < num_planes:
+        raw_vals = raw_vals + [raw_vals[-1]] * (num_planes - len(raw_vals))
+    elif len(raw_vals) > num_planes:
+        raise ValueError(f"vs_tiletools.{function}: Too many color values for the input format.")
 
     if not all(0.0 <= v <= 255.0 for v in raw_vals):
         raise ValueError(f"vs_tiletools.{function}: Color values must be in range 0–255.")
@@ -42,8 +42,6 @@ def _normalize_color(mode, clip_format, function):
         return [int(round(v * dst_max / 255.0)) for v in raw_vals]
 
     if sample_type == vs.FLOAT:
-        if all(0.0 <= v <= 1.0 for v in raw_vals):
-            return [float(v) for v in raw_vals]
         return [v / 255.0 for v in raw_vals]
 
     return False
@@ -174,6 +172,9 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
     left, right, top, bottom, offset = map(int, (left, right, top, bottom, offset))
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.autofill: Clip must be a vapoursynth clip.")
+    clip_format = clip.format
+    if clip_format.color_family != vs.YUV:
+        raise ValueError("vs_tiletools.autofill: Clip must be in YUV format.")
     if not all(0.0 <= v <= 255.0 for v in color):
         raise ValueError("vs_tiletools.autofill: Color values must be in range 0–255.")
     if tol < 0:
@@ -185,7 +186,7 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
     if not any((left, right, top, bottom)):
         return clip
 
-    clip_format = clip.format
+
     sub_w = 1 << (clip_format.subsampling_w or 0)
     sub_h = 1 << (clip_format.subsampling_h or 0)
     tol_c = tol if tol_c is None else tol_c
@@ -618,9 +619,7 @@ def crossfade(clipa, clipb, length=10):
         raise TypeError("vs_tiletools.crossfade: First input clip must be a vapoursynth clip.")
     if not isinstance(clipb, vs.VideoNode):
         raise TypeError("vs_tiletools.crossfade: Second input clip must be a vapoursynth clip.")
-    if clipa.format.id != clipb.format.id:
-        raise ValueError("vs_tiletools.crossfade: Both clips must have the same format and dimensions.")
-    if clipa.width != clipb.width or clipa.height != clipb.height:
+    if clipa.format.id != clipb.format.id or clipa.width != clipb.width or clipa.height != clipb.height:
         raise ValueError("vs_tiletools.crossfade: Both clips must have the same format and dimensions.")
     if length <= 0:
         return core.std.Splice([clipa, clipb])
