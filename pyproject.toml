@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vs_tiletools"
+version = "0.1.0"
+description = "Collection of Tiling Related Functions for VapourSynth."
+authors = [{ name = "pifroggi" }]
+license = { text = "MIT" }
+
+[project.urls]
+Home-page = "https://github.com/pifroggi/vs_tiletools"
+Repository = "https://github.com/pifroggi/vs_tiletools"
