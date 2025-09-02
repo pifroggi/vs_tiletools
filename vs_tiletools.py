@@ -48,6 +48,13 @@ def _normalize_color(mode, clip_format, function):
 
 
 def pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
+    """Pads a clip with various padding modes.
+
+    Args:
+        clip: Clip to be padded. Any format.
+        left, right, top, bottom: Padding amount in pixels.
+        mode: Padding mode can be "mirror", "repeat", "fillmargins", "black", or a custom color in 8-bit scale [128, 128, 128].
+    """
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.pad: Clip must be a vapoursynth clip.")
         
@@ -101,7 +108,12 @@ def pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
 
 
 def crop(clip, left=None, right=None, top=None, bottom=None):
-    # auto crops a clip padded with pad()
+    """Automatically crops padding added by pad(), even if the clip was since resized.
+
+    Args:
+        clip: Padded clip. Any format.
+        left, right, top, bottom: Optional manual crop values in pixels.
+    """
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.crop: Clip must be a vapoursynth clip.")
 
@@ -168,6 +180,19 @@ def crop(clip, left=None, right=None, top=None, bottom=None):
 
 
 def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 128], tol=16, tol_c=None, fill="mirror"):
+    """Detects uniform colored borders (like letterboxes/pillarboxes) and fills them with various filling modes.
+
+    Args:
+        clip: Source clip. Only YUV formats are supported.
+        left, right, top, bottom: Maximum border fill amount in pixels.
+        offset: Offsets the detected fill area by an extra amount in pixels. Useful if the borders are slightly blurry.
+            Does not offset sides that have detected 0 pixels.
+        color: Source clip border color in 8-bit scale [16, 128, 128].
+        tol: Tolerance to account for fluctuations in border color.
+        tol_c: Optional chroma tolerance; defaults to `tol` if not set.
+        fill: Filling mode can be "mirror", "repeat", "fillmargins", "black", or a custom color in 8-bit scale [128, 128, 128].
+    """
+    
     # checks
     left, right, top, bottom, offset = map(int, (left, right, top, bottom, offset))
     if not isinstance(clip, vs.VideoNode):
@@ -250,6 +275,17 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
 
 
 def tile(clip, width=256, height=256, overlap=16, padding="mirror"):
+    """Splits a clip into tiles of fixed dimensions to reduce resource requirements. Outputs a clip with all tiles in order.
+
+    Args:
+        clip: Clip to tile. Any format.
+        width, height: Tile size of a single tile in pixel.
+        overlap: Overlap from one tile to the next. When overlap is increased the tile size is not altered, so the amount
+            of tiles per frame increases. Can be a single value or a pair for vertical and horizontal [16, 16].
+        padding: How to handle tiles that are smaller than tile size.  These can be padded with modes `mirror`, `repeat`,
+            `fillmargins`, `black`, a custom color in 8 bit scale `[128, 128, 128]`, or just discarded with `discard`.
+    """
+    
     # input checks
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.tile: Clip must be a vapoursynth clip.")
@@ -342,6 +378,17 @@ def tile(clip, width=256, height=256, overlap=16, padding="mirror"):
 
 
 def untile(clip, fade=False, full_width=None, full_height=None, overlap=None):
+    """Automatically reassembles a clip tiled with tile(), even if tiles were since resized.
+
+    Args:
+        clip: Tiled clip. Any format.
+        fade: If True, feather/blend across overlaps; if False, crop overlaps.
+        full_width, full_height, overlap: Optional manual parameters. Needed is the full assembled frame dimensions
+            and the overlap between tiles. In manual mode you have to account for resized or discarded tiles yourself.  
+            Tip: If tiles were discarded, the full_width/full_height are now smaller and a multiple of the original tile size.  
+            Tip: If tiles were resized 2x, simply double all values.
+    """
+    
     # check input
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.untile: Clip must be a vapoursynth clip.")
@@ -389,7 +436,7 @@ def untile(clip, fade=False, full_width=None, full_height=None, overlap=None):
         if stride_x <= 0 or stride_y <= 0:
             raise ValueError("vs_tiletools.untile: Overlap must be smaller than tile size.")
 
-        # grid size (general/padded formulation — works for exact-fit too)
+        # grid size
         tiles_x = 1 + (0 if orig_width  <= tile_width  else (orig_width  - tile_width  + stride_x - 1) // stride_x)
         tiles_y = 1 + (0 if orig_height <= tile_height else (orig_height - tile_height + stride_y - 1) // stride_y)
         assembled_width  = tile_width  + (tiles_x - 1) * stride_x
@@ -567,6 +614,14 @@ def untile(clip, fade=False, full_width=None, full_height=None, overlap=None):
 
 
 def tpad(clip, length=1000, mode="mirror", relative=False):
+    """Temporally pads (extends) a clip by appending frames using various padding modes.
+
+    Args:
+        clip: Clip to extend. Any format.
+        length: Total length of padded clip, or number of frames to add, depending on `relative`.
+        mode: Padding mode can be `mirror`, `repeat`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
+        relative: If True, `length` is the total length of the output clip; If False, the number of frames to append.
+    """
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.tpad: Clip must be a vapoursynth clip.")
     if length < 1:
@@ -613,6 +668,13 @@ def tpad(clip, length=1000, mode="mirror", relative=False):
 
 
 def crossfade(clipa, clipb, length=10):
+    """Crossfades between two clips without FrameEval/ModifyFrame.
+
+    Args:
+        clipa, clipb: Input clips to crossfade. Any format, as long as they match.
+        length: Length of the crossfade. For example, 10 will fade the last 10 frames of `clipa`
+            into the first 10 frames of `clipb`.
+    """
     
     # checks
     if not isinstance(clipa, vs.VideoNode):
@@ -662,6 +724,18 @@ def crossfade(clipa, clipb, length=10):
 
 
 def window(clip, length=20, overlap=5, padding="mirror"):
+    """Segments a clip into temporal windows with a fixed length and adds overlap on the tail end of each window.
+        In combination with the unwindow function, the overlap can then be used to crossfade between windows and
+        eliminate sudden jumps/seams that can occur on window based functions like https://github.com/pifroggi/vs_undistort.
+
+    Args:
+        clip: Clip that should be windowed. Any format.
+        length: Temporal window length.
+        overlap: Overlap from one window to the next. When overlap is increased, the temporal window length is not
+            altered, so the total amount of windows per clip increases.
+        padding: How to handle windows that are smaller than length. These can be padded with modes `mirror`, `repeat`,
+            `black`, a custom color in 8-bit scale `[128, 128, 128]`, discarded with `discard`, or left as is with `None`.
+    """
     
     # checks
     if not isinstance(clip, vs.VideoNode):
@@ -735,6 +809,16 @@ def window(clip, length=20, overlap=5, padding="mirror"):
 
 
 def unwindow(clip, fade=False, full_length=None, window_length=None, overlap=None):
+    """Automatically removes the overlap from a clip from window() and optionally uses it to crossfade between windows.
+
+    Args:
+        clip: Windowed clip. Any format.
+        fade: If True, crossfade across overlaps; if False, trim overlaps.
+        full_length, window_length, overlap: Optional manual parameters. Needed is the full clip length, window
+            length and the overlap between windows. In manual mode you have to account for a discarded window yourself.  
+            Tip: If the last window was discarded, the full_length is now smaller and a multiple of window_length.  
+            Tip: If the windowed clip was interpolated to 2x, simply double all values.
+    """
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.unwindow: Clip must be a vapoursynth clip.")
 
