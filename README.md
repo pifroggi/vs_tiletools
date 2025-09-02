@@ -88,7 +88,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Clip that was padded with the pad function. Any format.
   
   __*`left`*, *`right`*, *`top`*, *`bottom`* (optional)__  
-  If you have not used the pad function on the clip, you can also enter crop values manually.
+  Optionally you can also enter crop values manually.
 
 <br />
 
@@ -130,9 +130,9 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   If fade is False, the overlap will be cropped.
 
   __*`full_width`*, *`full_height`*, *`overlap`* (optional)__  
-  If you have not used the tile function on the clip, you can also enter untile parameters manually. Needed is the full assembled frame dimensions and the overlap between tiles. In manual mode you have to account for resized or discarded tiles yourself.  
-  Tip: If tiles were discarded, the full_width/full_height are now smaller and a multiple of the original tile size.  
-  Tip: If tiles were resized 2x, simply double all values.
+  You can also enter untile parameters manually. Needed is the full assembled frame dimensions and the overlap between tiles. In manual mode you have to account for resized or discarded tiles yourself.  
+  __Tip:__ If tiles were discarded, the full_width/full_height are now smaller and a multiple of the original tile size.  
+  __Tip:__ If tiles were resized 2x, simply double all values.
 
 <br />
 
@@ -203,9 +203,9 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   If fade is False, the overlap will be trimmed.
 
   __*`full_length`*, *`window_length`*, *`overlap`* (optional)__  
-  You can also enter unwindow parameters manually. Needed is the full assembled clip length and the overlap between windows. In manual mode you have to account for a discarded window yourself.  
-  Tip: If the last window was discarded, the full_length is now smaller and a multiple of window_length.  
-  Tip: If the windowed clip was interpolated to 2x, simply double all values.
+  You can also enter unwindow parameters manually. Needed is the full clip length, window length and the overlap between windows. In manual mode you have to account for a discarded window yourself.  
+  __Tip:__ If the last window was discarded, the full_length is now smaller and a multiple of window_length.  
+  __Tip:__ If the windowed clip was interpolated to 2x, simply double all values.
 
 <br />
 
