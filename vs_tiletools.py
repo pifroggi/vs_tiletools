@@ -1,5 +1,4 @@
 import json
-import numpy as np
 import vapoursynth as vs
 from numbers import Real
 
@@ -671,7 +670,7 @@ def window(clip, length=20, overlap=5, padding="mirror"):
     if length < 1:
         raise ValueError("vs_tiletools.window: Temporal window length must be at least 1.")
     if overlap < 0 or overlap >= length:
-        raise ValueError("vs_tiletools.window: Overlap must be positive and smaller than length.")
+        raise ValueError("vs_tiletools.window: Overlap can not be negative and smaller than length.")
 
     num_frames  = clip.num_frames
     stride      = length - overlap
@@ -754,7 +753,7 @@ def unwindow(clip, fade=False, full_length=None, window_length=None, overlap=Non
         if window_length < 1:
             raise ValueError("vs_tiletools.unwindow: Window length must be at least 1.")
         if overlap < 0 or overlap >= window_length:
-            raise ValueError("vs_tiletools.unwindow: Overlap can not be nagative and must be smaller than window length.")
+            raise ValueError("vs_tiletools.unwindow: Overlap can not be negative and must be smaller than window length.")
 
     else:
         # get stored window props
