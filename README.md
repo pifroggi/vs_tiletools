@@ -144,7 +144,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   ```
   
   __*`clip`*__  
-  Source clip. Only YUV and GRAY formats.
+  Source clip. Only YUV formats are supported.
 
   __*`left`*, *`right`*, *`top`*, *`bottom`*__  
   Maximum border fill thickness in pixels.
