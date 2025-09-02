@@ -242,4 +242,4 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Input clips to crossfade. Any format, as long as they match.
 
   __*`length`*__  
-  Length of the crossfade.
+  Length of the crossfade. For example `length=10` will fade the last 10 frames of clipa into the first 10 frames of clipb.
