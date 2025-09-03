@@ -75,7 +75,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
   __*`overlap`*__  
   Overlap from one tile to the next. When overlap is increased the tile size is not altered, so the amount of tiles per frame increases.  
-  Can be a single value or a pair for vertical and horizontal `[16, 16]`.
+  Can be a single value or a pair for horizontal and vertical `[16, 16]`.
 
   __*`padding`*__  
   How to handle tiles that are smaller than tile size. These can be padded with modes `mirror`, `repeat`, `fillmargins`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, or just discarded with `discard`.
