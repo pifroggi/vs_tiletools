@@ -613,58 +613,149 @@ def untile(clip, fade=False, full_width=None, full_height=None, overlap=None):
     return core.std.RemoveFrameProps(full, props=[prop_key])
 
 
-def tpad(clip, length=1000, mode="mirror", relative=False):
-    """Temporally pads (extends) a clip by appending frames using various padding modes.
+def tpad(clip, start=0, end=0, length=None, mode="mirror"):
+    """Temporally pads (extends) a clip using various padding modes.
 
     Args:
-        clip: Clip to extend. Any format.
-        length: Total length of padded clip, or number of frames to add, depending on `relative`.
-        mode: Padding mode can be `mirror`, `repeat`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
-        relative: If True, `length` is the total length of the output clip; If False, the number of frames to append.
+        clip: Clip to pad. Any format.
+        start, end: Number of frames to add at the start and/or end. Mutually exclusive with length. 
+        length: Pads clip to this absolute number of frames. Mutually exclusive with start/end. 
+        mode: 'mirror', 'repeat', 'black', or a custom color in 8-bit scale like [128, 128, 128].
     """
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.tpad: Clip must be a vapoursynth clip.")
-    if length < 1:
+    if length is not None and (start or end):
+        raise ValueError("vs_tiletools.tpad: Use either start and end to add that number of frames, or length to pad to an absolute length.")
+    if length is not None and length < 1:
         raise ValueError("vs_tiletools.tpad: Length must be at least 1.")
+    if start < 0 or end < 0:
+        raise ValueError("vs_tiletools.tpad: Start or end can not be negative.")
 
-    frames_present = clip.num_frames
-    frames_total   = frames_present + length if relative else length
-    frames_missing = frames_total - frames_present
-    if frames_missing <= 0:
-        return clip
+    # determine how many frames to add
+    if length is not None:
+        add_start = 0
+        add_end   = max(0, length - clip.num_frames)
+    else:
+        add_start = int(start)
+        add_end   = int(end)
 
     pad_mode = mode.lower() if isinstance(mode, str) else mode
+    prop_key = "tiletools_tpadprops"
+    out      = clip
 
-    # mirror frames
-    if pad_mode == "mirror":
-        if frames_present == 1:
-            last_frame = core.std.Trim(clip, first=0, length=1)
-            tail = core.std.Loop(last_frame, times=frames_missing)
+    def _end_pad(clip, n):
+        # mirror frames
+        if pad_mode == "mirror":
+            if clip.num_frames == 1:
+                return core.std.Loop(clip, times=n)
+            reverse  = core.std.Reverse(clip[:-1])  # trim to avoid duplicates
+            forward  = clip[1:]                     # trim to avoid duplicates
+            pingpong = reverse + forward
+            repeats  = (n + pingpong.num_frames - 1) // max(1, pingpong.num_frames)
+            return (pingpong * repeats)[:n]
+        
+        # repeat last frame
+        if pad_mode == "repeat":
+            last = core.std.Trim(clip, first=clip.num_frames - 1, length=1)
+            return core.std.Loop(last, times=n)
+        
+        # solid color
+        color = _normalize_color(pad_mode, clip.format, "tpad")
+        if color is False:
+            raise ValueError("vs_tiletools.tpad: Mode must be 'mirror', 'repeat', 'black', or a custom color like [128, 128, 128].")
+        return core.std.BlankClip(clip=clip, length=n, color=color, keep=True)
+
+    def _start_pad(clip, n):
+        # mirror frames
+        if pad_mode == "mirror":
+            if clip.num_frames == 1:
+                return core.std.Loop(clip, times=n)
+            forward  = clip[1:]                     # trim to avoid duplicates
+            reverse  = core.std.Reverse(clip[:-1])  # trim to avoid duplicates
+            pingpong = forward + reverse
+            repeats  = (n + pingpong.num_frames - 1) // max(1, pingpong.num_frames)
+            trimmed  = (pingpong * repeats)[:n]
+            return core.std.Reverse(trimmed)
+            
+        # repeat first frame
+        if pad_mode == "repeat":
+            first = core.std.Trim(clip, first=0, length=1)
+            return core.std.Loop(first, times=n)
+        
+        # solid color
+        color = _normalize_color(pad_mode, clip.format, "tpad")
+        if color is False:
+            raise ValueError("vs_tiletools.tpad: Mode must be 'mirror', 'repeat', 'black', or a custom color like [128, 128, 128].")
+        return core.std.BlankClip(clip=clip, length=n, color=color, keep=True)
+    
+    # pad
+    if add_start > 0:
+        head = _start_pad(clip, add_start)
+        out  = head + out
+    if add_end > 0:
+        tail = _end_pad(clip, add_end)
+        out  = out + tail
+
+    # set frame props for autotrim
+    cfg = dict(start_pad=int(add_start), end_pad=int(add_end))
+    cfg_str = json.dumps(cfg, separators=(",", ":"))
+    return core.std.SetFrameProp(out, prop=prop_key, data=[cfg_str])
+
+
+def trim(clip, start=None, end=None, length=None):
+    """Automatically trims temporal padding added by tpad().
+    
+    Args:
+        clip: Temporally padded clip. Any format.
+        start, end: Optional manual number of frames to remove from start and/or end. Mutually exclusive with length.
+        length: Optional manual trim to exactly this many frames. Mutually exclusive with start/end.
+    """
+    if not isinstance(clip, vs.VideoNode):
+        raise TypeError("vs_tiletools.trim: Clip must be a vapoursynth clip.")
+
+    prop_key = "tiletools_tpadprops"
+    manual   = any(v is not None for v in (start, end, length))
+    
+    # manual trim
+    if manual:
+        if length is not None and (start or end):
+            raise ValueError("vs_tiletools.trim: Use either start/end or length, not both.")
+        
+        if length is not None:
+            length = int(length)
+            if length < 1:
+                raise ValueError("vs_tiletools.trim: Length must be at least 1.")
+            if length > clip.num_frames:
+                raise ValueError("vs_tiletools.trim: Length can not be larger than clip length.")
+            start_pad = 0
+            end_pad   = clip.num_frames - length
         else:
-            # exclude endpoint to avoid duplicates
-            rev = core.std.Reverse(clip[:-1])
-            fwd = clip[1:]
-            cycle = rev + fwd
-            cycle_len = max(1, cycle.num_frames)
-            rep = (frames_missing + cycle_len - 1) // cycle_len
-            tail = (cycle * rep)[:frames_missing]
-        return clip + tail
+            start_pad = 0 if start is None else int(start)
+            end_pad   = 0 if end   is None else int(end)
 
-    # repeat last frame
-    if pad_mode == "repeat":
-        last_frame = core.std.Trim(clip, first=frames_present - 1, length=1)
-        tail = core.std.Loop(last_frame, times=frames_missing)
-        return clip + tail
-
-    # error if no color
-    color = _normalize_color(pad_mode, clip.format, "tpad")
-    if color is False:
-        raise ValueError("vs_tiletools.tpad: Mode must be 'mirror', 'repeat', 'black', or a custom color like [128, 128, 128].")
-
-    # append solid color frames
+    # auto trim
     else:
-        tail = core.std.BlankClip(clip=clip, length=frames_missing, color=color, keep=True)
-        return clip + tail
+        f0 = clip.get_frame(0)
+        if prop_key not in f0.props:
+            raise KeyError("vs_tiletools.trim: Clip has no temporal pad props. Did you pass the right clip? Were frame props deleted? You can also trim manually.")
+
+        raw       = f0.props[prop_key]
+        cfg       = json.loads(raw.decode() if isinstance(raw, (bytes, bytearray)) else raw)
+        start_pad = int(cfg.get("start_pad", 0))
+        end_pad   = int(cfg.get("end_pad", 0))
+
+    # if nothing to trim, just remove props and return
+    if start_pad == 0 and end_pad == 0:
+        return core.std.RemoveFrameProps(clip, props=[prop_key])
+
+    if start_pad < 0 or end_pad < 0:
+        raise ValueError("vs_tiletools.trim: Start or end can not be negative.")
+    if start_pad + end_pad >= clip.num_frames:
+        raise ValueError("vs_tiletools.trim: Trim can not be larger than clip length.")
+
+    # trim and remove frame props
+    out = clip[start_pad: clip.num_frames - end_pad] if end_pad else clip[start_pad:]
+    return core.std.RemoveFrameProps(out, props=[prop_key])
 
 
 def crossfade(clipa, clipb, length=10):
@@ -769,15 +860,12 @@ def window(clip, length=20, overlap=5, padding="mirror"):
                 padded_window = window_clip  
 
             # pad with tpad
-            elif isinstance(pad_mode, str) and pad_mode in {"mirror", "repeat", "black"}:
+            elif (isinstance(pad_mode, str) and pad_mode in {"mirror", "repeat", "black"}) or isinstance(pad_mode, (list, tuple)):
                 padded_window = tpad(window_clip, length, pad_mode)
-
-            # pad with tpad custom solid color
-            elif isinstance(pad_mode, (list, tuple)):
-                padded_window = tpad(window_clip, length, pad_mode)
+                padded_window = core.std.CopyFrameProps(padded_window, window_clip)  # copy previous tpad props in case tpad was used already
 
             else:
-                raise ValueError("vs_tiletools.window: Padding must be None, 'mirror', 'repeat', 'discard', 'black', or a custom color [29, 255, 107].")
+                raise ValueError("vs_tiletools.window: Padding must be 'mirror', 'repeat', 'black', or a custom color like [128, 128, 128].")
         
         else:
             padded_window = window_clip
