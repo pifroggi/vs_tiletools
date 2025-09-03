@@ -18,7 +18,7 @@
 
 
 # Tiling and Padding functions for VapourSynth
-A collection of spatial and temporal tiling and padding utilities for VapourSynth. The original idea was just a tiling function to make AI filters less VRAM-hungry and to provide additional options that built-in solutions might not. Over time, related functions were added.
+A collection of spatial and temporal tiling and padding utilities for VapourSynth. The original idea was just a tiling function to make AI filters less VRAM-hungry and to provide additional options that built-in solutions might not. Over time, many related functions were added.
 
 The functions often come in pairs, with one doing a thing and the other inversing it. For example:
 ```python
@@ -44,6 +44,7 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
   * [Window](#window) - Segments a clip into temporal windows with overlap
   * [Unwindow](#unwindow) - Auto removes or crossfades overlaps added by `window()`
   * [TPad](#tpad) - Temporally pads with various padding modes
+  * [Trim](#trim) - Auto trims temporally padded clip from `tpad()`
   * [Crossfade](#crossfade) - Crossfades between two clips
 
 <br />
@@ -77,7 +78,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Can be a single value or a pair for vertical and horizontal `[16, 16]`.
 
   __*`padding`*__  
-  How to handle tiles that are smaller than tile size. These can be padded with modes `mirror`, `repeat`, `fillmargins`, `black`, a custom color in 8 bit scale `[128, 128, 128]`, or just discarded with `discard`.
+  How to handle tiles that are smaller than tile size. These can be padded with modes `mirror`, `repeat`, `fillmargins`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, or just discarded with `discard`.
 
 <br />
 
@@ -162,7 +163,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Tolerance chroma is optional and defaults to `tol` if not set. 
 
   __*`fill`*__  
-  Filling mode can be `mirror`, `repeat`, `fillmargins`, `black`, or a custom color in 8 bit scale `[128, 128, 128]`.
+  Filling mode can be `mirror`, `repeat`, `fillmargins`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
 
 <br />
 
@@ -211,24 +212,42 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 <br />
 
 * ### TPad
-  Temporally pads (extends) a clip by appending frames using various padding modes.
+  Temporally pads (extends) a clip using various padding modes.
   ```python
   import vs_tiletools
-  clip = vs_tiletools.tpad(clip, length=1000, mode="mirror", relative=False)
+  clip = vs_tiletools.tpad(clip, start=0, end=0, length=None, mode="mirror")
   ```
   
   __*`clip`*__  
-  Clip to extend. Any format.
+  Clip to pad. Any format.
+
+  __*`start`*, *`end`*__  
+  Number of frames to add at the start and/or end. Mutually exclusive with `length`. 
 
   __*`length`*__  
-  Total length of padded clip, or number of frames to add, depending on `relative`.
+  Pads clip to exactly this many frames. Mutually exclusive with `start`/`end`. 
 
   __*`mode`*__  
   Padding mode can be `mirror`, `repeat`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
 
-  __*`relative`*__  
-  If relative is False, `length` is the total length of the output clip.  
-  If relative is True, `length` is the number of frames to append at the end.
+<br />
+
+* ### Trim
+  Automatically trims temporal padding added by tpad().
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.trim(clip) # automatic
+  clip = vs_tiletools.trim(clip, start=0, end=0, length=None) # manual
+  ```
+  
+  __*`clip`*__  
+  Temporally padded clip. Any format.
+  
+  __*`start`*, *`end`* (optional)__  
+  Optional manual number of frames to remove from start and/or end. Mutually exclusive with `length`.
+
+  __*`length`* (optional)__  
+  Optional manual trim to exactly this many frames. Mutually exclusive with `start`/`end`.
 
 <br />
 
