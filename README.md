@@ -18,7 +18,7 @@
 
 
 # Tiling and Padding functions for VapourSynth
-A collection of spatial and temporal tiling and padding utilities for VapourSynth. The original idea was just a tiling function to make AI filters less VRAM-hungry and to provide additional options that built-in solutions might not. Over time, many related functions were added.
+A collection of spatial and temporal tiling and padding utilities for VapourSynth. The original idea was just a tiling function to make AI filters less VRAM-hungry and to provide additional options that built-in solutions might not. Over time, more related functions were added.
 
 The functions often come in pairs, with one doing a thing and the other inversing it. For example:
 ```python
@@ -41,7 +41,7 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
   * [Crop](#crop) - Auto crops padded clip from `pad()`, even if resized
   * [Autofill](#autofill) - Auto detects borders and fills them with various fill modes
 * [Temporal Functions](#temporal-functions)
-  * [Window](#window) - Segments a clip into temporal windows with overlap
+  * [Window](#window) - Inserts temporal overlaps a the end of fixed length temporal windows
   * [Unwindow](#unwindow) - Auto removes or crossfades overlaps added by `window()`
   * [TPad](#tpad) - Temporally pads with various padding modes
   * [Trim](#trim) - Auto trims temporally padded clip from `tpad()`
@@ -169,7 +169,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
 ## Temporal Functions
 * ### Window
-  Segments a clip into temporal windows with a fixed length and adds overlap on the tail end of each window. In combination with the unwindow function, the overlap can then be used to crossfade between windows and eliminate sudden jumps/seams that can occur on window based functions like [vs_undistort](https://github.com/pifroggi/vs_undistort).
+  Inserts temporal overlaps at the end of each temporal window into the clip. That means a window with `length=20` and `overlap=5` will produce a clip with this frame pattern: `0–19`, `15–34`, `30–49`, and so on. In combination with the unwindow function, the overlap can then be used to crossfade between windows and eliminate sudden jumps/seams that can occur on window based functions like [vs_undistort](https://github.com/pifroggi/vs_undistort).
   ```python
   import vs_tiletools
   clip = window(clip, length=20, overlap=5, padding="mirror")
