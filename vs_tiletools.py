@@ -189,7 +189,7 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
             Does not offset sides that have detected 0 pixels.
         color: Source clip border color in 8-bit scale [16, 128, 128].
         tol: Tolerance to account for fluctuations in border color.
-        tol_c: Optional chroma tolerance; defaults to `tol` if not set.
+        tol_c: Optional chroma tolerance; defaults to 'tol' if not set.
         fill: Filling mode can be "mirror", "repeat", "fillmargins", "black", or a custom color in 8-bit scale [128, 128, 128].
     """
     
@@ -282,8 +282,8 @@ def tile(clip, width=256, height=256, overlap=16, padding="mirror"):
         width, height: Tile size of a single tile in pixel.
         overlap: Overlap from one tile to the next. When overlap is increased the tile size is not altered, so the amount
             of tiles per frame increases. Can be a single value or a pair for vertical and horizontal [16, 16].
-        padding: How to handle tiles that are smaller than tile size.  These can be padded with modes `mirror`, `repeat`,
-            `fillmargins`, `black`, a custom color in 8 bit scale `[128, 128, 128]`, or just discarded with `discard`.
+        padding: How to handle tiles that are smaller than tile size.  These can be padded with modes 'mirror', 'repeat',
+            'fillmargins', 'black', a custom color in 8 bit scale [128, 128, 128], or just discarded with 'discard'.
     """
     
     # input checks
@@ -763,8 +763,8 @@ def crossfade(clipa, clipb, length=10):
 
     Args:
         clipa, clipb: Input clips to crossfade. Any format, as long as they match.
-        length: Length of the crossfade. For example, 10 will fade the last 10 frames of `clipa`
-            into the first 10 frames of `clipb`.
+        length: Length of the crossfade. For example, 10 will fade the last 10 frames of clipa
+            into the first 10 frames of clipb.
     """
     
     # checks
@@ -815,7 +815,8 @@ def crossfade(clipa, clipb, length=10):
 
 
 def window(clip, length=20, overlap=5, padding="mirror"):
-    """Segments a clip into temporal windows with a fixed length and adds overlap on the tail end of each window.
+    """Inserts temporal overlaps at the end of each temporal window into the clip. That means a window with 
+        length=20 and overlap=5 will produce a clip with this frame pattern: 0–19, 15–34, 30–49, and so on.
         In combination with the unwindow function, the overlap can then be used to crossfade between windows and
         eliminate sudden jumps/seams that can occur on window based functions like https://github.com/pifroggi/vs_undistort.
 
@@ -824,8 +825,8 @@ def window(clip, length=20, overlap=5, padding="mirror"):
         length: Temporal window length.
         overlap: Overlap from one window to the next. When overlap is increased, the temporal window length is not
             altered, so the total amount of windows per clip increases.
-        padding: How to handle windows that are smaller than length. These can be padded with modes `mirror`, `repeat`,
-            `black`, a custom color in 8-bit scale `[128, 128, 128]`, discarded with `discard`, or left as is with `None`.
+        padding: How to handle the last window of the clip if it is smaller than length. It can be padded with modes 'mirror',
+            'repeat', 'black', a custom color in 8-bit scale [128, 128, 128], discarded with 'discard', or left as is with 'None'.
     """
     
     # checks
