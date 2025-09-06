@@ -38,7 +38,8 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
   * [Tile](#tile) - Splits each frame into tiles of fixed dimensions
   * [Untile](#untile) - Auto reassembles tiles from `tile()`, even if resized
   * [Pad](#pad) - Pads a clip with various padding modes
-  * [Crop](#crop) - Auto crops padded clip from `pad()`, even if resized
+  * [Crop](#crop) - Auto crops padded clip from `pad()` or `mod()`, even if resized
+  * [Mod](#mod) - Pads or crops a clip so width and height are multiples of the given modulus
   * [Autofill](#autofill) - Auto detects borders and fills them with various fill modes
 * [Temporal Functions](#temporal-functions)
   * [Window](#window) - Inserts temporal overlaps a the end of fixed length temporal windows
@@ -123,7 +124,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 <br />
 
 * ### Crop
-  Automatically crops padding added by `pad()`, even if the clip was since resized.
+  Automatically crops padding added by `pad()` or `mod()`, even if the clip was since resized.
   ```python
   import vs_tiletools
   clip = vs_tiletools.crop(clip) # automatic
@@ -135,6 +136,24 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   
   __*`left`*, *`right`*, *`top`*, *`bottom`* (optional)__  
   Optionally you can also enter crop values manually.
+
+<br />
+
+* ### Mod
+  Pads or crops a clip so width and height are multiples of the given modulus.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.mod(clip, modulus=64, mode="mirror")
+  ```
+  
+  __*`clip`*__  
+  Source clip. Any format.
+  
+  __*`modulus`*__  
+  Dimensions will be a multiple of this value. Can be a single value, or a pair for width and height `[64, 32]`.
+  
+  __*`mode`*__  
+  Mode to reach the next upper multiple via padding can be `mirror`, `repeat`, `fillmargins`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, or `discard` to crop to the next lower multiple.
 
 <br />
 
