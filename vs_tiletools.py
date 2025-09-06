@@ -1,3 +1,7 @@
+
+# Script by pifroggi https://github.com/pifroggi/vs_tiletools
+# or tepete and pifroggi on Discord
+
 import json
 import vapoursynth as vs
 from numbers import Real
@@ -108,7 +112,7 @@ def pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
 
 
 def crop(clip, left=None, right=None, top=None, bottom=None):
-    """Automatically crops padding added by pad(), even if the clip was since resized.
+    """Automatically crops padding added by pad() or mod(), even if the clip was since resized.
 
     Args:
         clip: Padded clip. Any format.
@@ -179,6 +183,49 @@ def crop(clip, left=None, right=None, top=None, bottom=None):
     return core.std.RemoveFrameProps(clip, props=[prop_key])
 
 
+def mod(clip, modulus=64, mode="mirror"):
+    """Pads or crops a clip so width and height are multiples of the given modulus.
+
+    Args:
+        clip: Source clip. Any format.
+        modulus: Single value, or a pair for width and height [64, 32].
+        mode: Padding mode can be "mirror", "repeat", "fillmargins", "black", a custom color in 8-bit scale [128, 128, 128], or "discard" to crop instead.
+    """
+    if not isinstance(clip, vs.VideoNode):
+        raise TypeError("vs_tiletools.mod: Clip must be a vapoursynth clip.")
+    if isinstance(modulus, (tuple, list)):
+        if len(modulus) != 2:
+            raise ValueError("vs_tiletools.mod: Modulus must be a single value, or a pair for width and height [64, 32].")
+        mod_w, mod_h = int(modulus[0]), int(modulus[1])
+    else:
+        mod_w = mod_h = int(modulus)
+    if mod_w <= 0 or mod_h <= 0:
+        raise ValueError("vs_tiletools.mod: Modulus can not be negative.")
+
+    clip_format = clip.format
+    width       = clip.width
+    height      = clip.height
+    sub_w       = 1 << (clip_format.subsampling_w or 0)
+    sub_h       = 1 << (clip_format.subsampling_h or 0)
+
+    # make sure modulus works with chroma subsampling
+    _check_modulus(mod_w, sub_w, "Modulus", "mod", clip_format)
+    _check_modulus(mod_h, sub_h, "Modulus", "mod", clip_format)
+
+    # crop to next lower multiple
+    if isinstance(mode, str) and mode.lower() == "discard":
+        crop_r = width  % mod_w
+        crop_b = height % mod_h
+        if not any((crop_r, crop_b)):
+            return clip
+        return core.std.Crop(clip, right=crop_r, bottom=crop_b)
+
+    # pad to next upper multiple
+    pad_w  = (-width)  % mod_w
+    pad_h  = (-height) % mod_h
+    return pad(clip, right=pad_w, bottom=pad_h, mode=mode)  # call pad() even if pad is 0, so rops are written and auto crop still works 
+
+
 def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 128], tol=16, tol_c=None, fill="mirror"):
     """Detects uniform colored borders (like letterboxes/pillarboxes) and fills them with various filling modes.
 
@@ -189,7 +236,7 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
             Does not offset sides that have detected 0 pixels.
         color: Source clip border color in 8-bit scale [16, 128, 128].
         tol: Tolerance to account for fluctuations in border color.
-        tol_c: Optional chroma tolerance; defaults to 'tol' if not set.
+        tol_c: Optional chroma tolerance; defaults to "tol" if not set.
         fill: Filling mode can be "mirror", "repeat", "fillmargins", "black", or a custom color in 8-bit scale [128, 128, 128].
     """
     
@@ -282,8 +329,8 @@ def tile(clip, width=256, height=256, overlap=16, padding="mirror"):
         width, height: Tile size of a single tile in pixel.
         overlap: Overlap from one tile to the next. When overlap is increased the tile size is not altered, so the amount
             of tiles per frame increases. Can be a single value or a pair for vertical and horizontal [16, 16].
-        padding: How to handle tiles that are smaller than tile size.  These can be padded with modes 'mirror', 'repeat',
-            'fillmargins', 'black', a custom color in 8 bit scale [128, 128, 128], or just discarded with 'discard'.
+        padding: How to handle tiles that are smaller than tile size.  These can be padded with modes "mirror", "repeat",
+            "fillmargins", "black", a custom color in 8 bit scale [128, 128, 128], or just discarded with "discard".
     """
     
     # input checks
@@ -620,7 +667,7 @@ def tpad(clip, start=0, end=0, length=None, mode="mirror"):
         clip: Clip to pad. Any format.
         start, end: Number of frames to add at the start and/or end. Mutually exclusive with length. 
         length: Pads clip to this absolute number of frames. Mutually exclusive with start/end. 
-        mode: 'mirror', 'repeat', 'black', or a custom color in 8-bit scale like [128, 128, 128].
+        mode: "mirror", "repeat", "black", or a custom color in 8-bit scale like [128, 128, 128].
     """
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.tpad: Clip must be a vapoursynth clip.")
@@ -825,8 +872,8 @@ def window(clip, length=20, overlap=5, padding="mirror"):
         length: Temporal window length.
         overlap: Overlap from one window to the next. When overlap is increased, the temporal window length is not
             altered, so the total amount of windows per clip increases.
-        padding: How to handle the last window of the clip if it is smaller than length. It can be padded with modes 'mirror',
-            'repeat', 'black', a custom color in 8-bit scale [128, 128, 128], discarded with 'discard', or left as is with 'None'.
+        padding: How to handle the last window of the clip if it is smaller than length. It can be padded with modes "mirror",
+            "repeat", "black", a custom color in 8-bit scale [128, 128, 128], discarded with "discard", or left as is with "None".
     """
     
     # checks
