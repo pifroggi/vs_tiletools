@@ -185,7 +185,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Overlap from one window to the next. When overlap is increased, the temporal window length is not altered, so the total amount of windows per clip increases.
 
   __*`padding`*__  
-  How to handle windows that are smaller than length. These can be padded with modes `mirror`, `repeat`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, discarded with `discard`, or left as is with `None`.
+  How to handle the last window of the clip if it is smaller than length. It can be padded with modes `mirror`, `repeat`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, discarded with `discard`, or left as is with `None`.
   
 <br />
 
