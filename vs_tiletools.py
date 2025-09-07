@@ -49,7 +49,7 @@ def _normalize_color(mode, clip_format, function):
         return [v / 255.0 for v in raw_vals]
 
     return False
-
+    
 
 def pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
     """Pads a clip with various padding modes.
@@ -84,7 +84,7 @@ def pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
         out = clip
 
     # fillborder modes
-    elif isinstance(mode, str) and mode in fb_modes:
+    elif isinstance(mode, str) and mode.lower() in fb_modes:
         # convert to 16bit, fillboders, convert back
         if clip_format.sample_type != vs.INTEGER:
             clip_format_int = core.query_video_format(clip_format.color_family, vs.INTEGER, 16, clip_format.subsampling_w, clip_format.subsampling_h)
@@ -200,8 +200,8 @@ def mod(clip, modulus=64, mode="mirror"):
         mod_w, mod_h = int(modulus[0]), int(modulus[1])
     else:
         mod_w = mod_h = int(modulus)
-    if mod_w <= 0 or mod_h <= 0:
-        raise ValueError("vs_tiletools.mod: Modulus can not be negative.")
+    if mod_w < 1 or mod_h < 1:
+        raise ValueError("vs_tiletools.mod: Modulus needs to be at least 1.")
 
     clip_format = clip.format
     width       = clip.width
@@ -914,7 +914,7 @@ def window(clip, length=20, overlap=5, padding="mirror"):
 
             # pad with tpad
             elif (isinstance(pad_mode, str) and pad_mode in {"mirror", "repeat", "black"}) or isinstance(pad_mode, (list, tuple)):
-                padded_window = tpad(window_clip, length, pad_mode)
+                padded_window = tpad(window_clip, length=length, mode=pad_mode)
                 padded_window = core.std.CopyFrameProps(padded_window, window_clip)  # copy previous tpad props in case tpad was used already
 
             else:
