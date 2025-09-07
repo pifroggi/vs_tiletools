@@ -95,7 +95,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Tiled clip. Any format.
   
   __*`fade`*__  
-  If fade is True, the overlap will be used to feather/blend between the tiles.  
+  If fade is True, the overlap will be used to feather/blend between the tiles to remove visible seams.  
   If fade is False, the overlap will be cropped.
 
   __*`full_width`*, *`full_height`*, *`overlap`* (optional)__  
@@ -188,10 +188,10 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
 ## Temporal Functions
 * ### Window
-  Inserts temporal overlaps at the end of each temporal window into the clip. That means a window with `length=20` and `overlap=5` will produce a clip with this frame pattern: `0–19`, `15–34`, `30–49`, and so on. In combination with the unwindow function, the overlap can then be used to crossfade between windows and eliminate sudden jumps/seams that can occur on window based functions like [vs_undistort](https://github.com/pifroggi/vs_undistort).
+  Inserts temporal overlaps at the end of each temporal window into the clip. That means a window with `length=20` and `overlap=5` will produce a clip with this frame pattern: `0–19`, `15–34`, `30–49`, and so on. In combination with the unwindow function, the overlap can then be used to crossfade between windows and eliminate sudden jumps/hitches that can occur on window based functions like [vs_undistort](https://github.com/pifroggi/vs_undistort).
   ```python
   import vs_tiletools
-  clip = window(clip, length=20, overlap=5, padding="mirror")
+  clip = vs_tiletools.window(clip, length=20, overlap=5, padding="mirror")
   ```
   
   __*`clip`*__  
@@ -220,7 +220,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Windowed clip. Any format.
   
   __*`fade`*__  
-  If fade is True, the overlap will be used to crossfade between the windows.  
+  If fade is True, the overlap will be used to crossfade between the windows to remove jumps/hitches.  
   If fade is False, the overlap will be trimmed.
 
   __*`full_length`*, *`window_length`*, *`overlap`* (optional)__  
