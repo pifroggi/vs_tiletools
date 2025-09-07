@@ -24,7 +24,7 @@ The functions often come in pairs, with one doing a thing and the other inversin
 ```python
 import vs_tiletools
 clip = vs_tiletools.tile(clip, width=256, height=256) # splits frames into 256x256 tiles
-clip = core.someheavyfilter.AIUpscale(clip)           # placefolder resource intensive filter
+clip = core.someheavyfilter.AIUpscale(clip)           # placeholder resource intensive filter
 clip = vs_tiletools.untile(clip)                      # reassembles the tiles into full frames
 ```
 
