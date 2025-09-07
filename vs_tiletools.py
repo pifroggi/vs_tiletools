@@ -188,8 +188,9 @@ def mod(clip, modulus=64, mode="mirror"):
 
     Args:
         clip: Source clip. Any format.
-        modulus: Single value, or a pair for width and height [64, 32].
-        mode: Padding mode can be "mirror", "repeat", "fillmargins", "black", a custom color in 8-bit scale [128, 128, 128], or "discard" to crop instead.
+        modulus: Dimensions will be a multiple of this value. Can be a single value, or a pair for width and height [64, 32].
+        mode: Mode to reach the next upper multiple via padding can be "mirror", "repeat", "fillmargins", "black", a custom
+            color in 8-bit scale [128, 128, 128], or "discard" to crop to the next lower multiple.
     """
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.mod: Clip must be a vapoursynth clip.")
@@ -219,6 +220,10 @@ def mod(clip, modulus=64, mode="mirror"):
         if not any((crop_r, crop_b)):
             return clip
         return core.std.Crop(clip, right=crop_r, bottom=crop_b)
+
+    # check if pad mode is valid
+    if not ((isinstance(mode, str) and mode.lower() in fb_modes) or (_normalize_color(mode, clip_format, "mod") is not False)):
+        raise TypeError("vs_tiletools.mod: Mode must be 'mirror', 'repeat', 'fillmargins', 'black', custom color values [128, 128, 128], or 'discard'.")
 
     # pad to next upper multiple
     pad_w  = (-width)  % mod_w
