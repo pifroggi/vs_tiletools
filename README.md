@@ -282,3 +282,10 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
   __*`length`*__  
   Length of the crossfade. For example `length=10` will fade the last 10 frames of clipa into the first 10 frames of clipb.
+
+<br />
+
+<br />
+
+> [!NOTE]
+> Padding mode "fixborders" is additionally supported in all functions, if the [fillborders](https://github.com/dubhater/vapoursynth-fillborders) plugin is compiled from source. See [this](https://github.com/dubhater/vapoursynth-fillborders/issues/7) issue.
