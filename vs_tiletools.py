@@ -18,7 +18,7 @@ def _check_modulus(value, subsampling, parameter, function, clip_format):
 
 def _normalize_color(mode, clip_format, function):
     # none lets addborders pick format appropriate black
-    if mode is None or (isinstance(mode, str) and mode.lower() in {"black", "none"}):
+    if mode is None or (isinstance(mode, str) and mode in {"black", "none", "None"}):
         return None
 
     # get values
@@ -84,7 +84,7 @@ def pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
         out = clip
 
     # fillborder modes
-    elif isinstance(mode, str) and mode.lower() in fb_modes:
+    elif isinstance(mode, str) and mode in fb_modes:
         # convert to 16bit, fillboders, convert back
         if clip_format.sample_type != vs.INTEGER:
             clip_format_int = core.query_video_format(clip_format.color_family, vs.INTEGER, 16, clip_format.subsampling_w, clip_format.subsampling_h)
@@ -214,7 +214,7 @@ def mod(clip, modulus=64, mode="mirror"):
     _check_modulus(mod_h, sub_h, "Modulus", "mod", clip_format)
 
     # crop to next lower multiple
-    if isinstance(mode, str) and mode.lower() == "discard":
+    if isinstance(mode, str) and mode == "discard":
         crop_r = width  % mod_w
         crop_b = height % mod_h
         if not any((crop_r, crop_b)):
@@ -222,7 +222,7 @@ def mod(clip, modulus=64, mode="mirror"):
         return core.std.Crop(clip, right=crop_r, bottom=crop_b)
 
     # check if pad mode is valid
-    if not ((isinstance(mode, str) and mode.lower() in fb_modes) or (_normalize_color(mode, clip_format, "mod") is not False)):
+    if not ((isinstance(mode, str) and mode in fb_modes) or (_normalize_color(mode, clip_format, "mod") is not False)):
         raise TypeError("vs_tiletools.mod: Mode must be 'mirror', 'repeat', 'fillmargins', 'black', custom color values [128, 128, 128], or 'discard'.")
 
     # pad to next upper multiple
@@ -386,8 +386,8 @@ def tile(clip, width=256, height=256, overlap=16, padding="mirror"):
         crop_b      = orig_height - used_height
         clip        = clip if (crop_r == 0 and crop_b == 0) else core.std.Crop(clip, right=crop_r, bottom=crop_b)
     else:
-        if not ((isinstance(padding, str) and (padding in fb_modes or padding == "black")) or isinstance(padding, (list, tuple))):
-            raise TypeError("vs_tiletools.tile: Padding must be 'mirror', 'repeat', 'fillmargins', 'discard', 'black', or color values [29, 255, 107].")
+        if not ((isinstance(padding, str) and (padding in fb_modes or padding == "black")) or isinstance(padding, (Real, list, tuple))):
+            raise TypeError("vs_tiletools.tile: Padding must be 'mirror', 'repeat', 'fillmargins', 'discard', 'black', or color values [128, 128, 128].")
     
         # pad tiles that are smaller than tile size
         tiles_x          = 1 + (0 if orig_width  <= width  else (orig_width  - width  + stride_x - 1) // stride_x)
@@ -691,8 +691,8 @@ def tpad(clip, start=0, end=0, length=None, mode="mirror"):
         add_start = int(start)
         add_end   = int(end)
 
-    pad_mode = mode.lower() if isinstance(mode, str) else mode
     prop_key = "tiletools_tpadprops"
+    pad_mode = mode
     out      = clip
 
     def _end_pad(clip, n):
@@ -902,7 +902,7 @@ def window(clip, length=20, overlap=5, padding="mirror"):
         frames_missing = length - frames_present
 
         if frames_missing > 0:
-            pad_mode = padding.lower() if isinstance(padding, str) else padding
+            pad_mode = padding
 
             # drop final short window
             if pad_mode == "discard":
@@ -913,7 +913,7 @@ def window(clip, length=20, overlap=5, padding="mirror"):
                 padded_window = window_clip  
 
             # pad with tpad
-            elif (isinstance(pad_mode, str) and pad_mode in {"mirror", "repeat", "black"}) or isinstance(pad_mode, (list, tuple)):
+            elif (isinstance(pad_mode, str) and pad_mode in {"mirror", "repeat", "black"}) or isinstance(pad_mode, (Real, list, tuple)):
                 padded_window = tpad(window_clip, length=length, mode=pad_mode)
                 padded_window = core.std.CopyFrameProps(padded_window, window_clip)  # copy previous tpad props in case tpad was used already
 
@@ -934,7 +934,7 @@ def window(clip, length=20, overlap=5, padding="mirror"):
     elif padding is None:
         pad_tag = "none"
     elif isinstance(padding, str):
-        pad_tag = padding.lower()
+        pad_tag = padding
     else:
         pad_tag = "none"
 
