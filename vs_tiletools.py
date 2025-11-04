@@ -691,9 +691,10 @@ def tpad(clip, start=0, end=0, length=None, mode="mirror"):
         add_start = int(start)
         add_end   = int(end)
 
-    prop_key = "tiletools_tpadprops"
-    pad_mode = mode
-    out      = clip
+    color_props = ['_Matrix','_Transfer','_Primaries','_ColorRange', '_ChromaLocation','_SARNum','_SARDen','_FieldBased']
+    prop_key    = "tiletools_tpadprops"
+    pad_mode    = mode
+    out         = clip
 
     def _end_pad(clip, n):
         # mirror frames
@@ -715,7 +716,9 @@ def tpad(clip, start=0, end=0, length=None, mode="mirror"):
         color = _normalize_color(pad_mode, clip.format, "tpad")
         if color is False:
             raise ValueError("vs_tiletools.tpad: Mode must be 'mirror', 'repeat', 'black', or a custom color like [128, 128, 128].")
-        return core.std.BlankClip(clip=clip, length=n, color=color, keep=True)
+        blank = core.std.BlankClip(clip=clip, length=n, color=color, keep=True)
+        last1 = core.std.Trim(clip, first=clip.num_frames - 1, length=1)
+        return core.std.CopyFrameProps(blank, last1, props=color_props) # props could be needed for format convertions
 
     def _start_pad(clip, n):
         # mirror frames
@@ -738,7 +741,9 @@ def tpad(clip, start=0, end=0, length=None, mode="mirror"):
         color = _normalize_color(pad_mode, clip.format, "tpad")
         if color is False:
             raise ValueError("vs_tiletools.tpad: Mode must be 'mirror', 'repeat', 'black', or a custom color like [128, 128, 128].")
-        return core.std.BlankClip(clip=clip, length=n, color=color, keep=True)
+        blank = core.std.BlankClip(clip=clip, length=n, color=color, keep=True)
+        first1 = core.std.Trim(clip, first=0, length=1)
+        return core.std.CopyFrameProps(blank, first1, props=color_props) # props could be needed for format convertions
     
     # pad
     if add_start > 0:
