@@ -52,6 +52,7 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
 
 ## Requirements
 * [fillborders](https://github.com/dubhater/vapoursynth-fillborders)
+* [cv_inpaint](https://github.com/dnjulek/VapourSynth-cv_inpaint) *(optional, adds pad modes: telea, ns, fsr)*
 * [autocrop](https://github.com/Irrational-Encoding-Wizardry/vapoursynth-autocrop) *(optional, only for autofill)*
 
 ## Setup
@@ -79,7 +80,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Can be a single value or a pair for horizontal and vertical `[16, 16]`.
 
   __*`padding`*__  
-  How to handle tiles that are smaller than tile size. These can be padded with modes `mirror`, `repeat`, `fillmargins`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, or just discarded with `discard`.
+  How to handle tiles that are smaller than tile size. These can be padded with modes `mirror`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, or just discarded with `discard`.
 
 <br />
 
@@ -119,7 +120,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Padding amount in pixel.
   
   __*`mode`*__  
-  Padding mode can be `mirror`, `repeat`, `fillmargins`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
+  Padding mode can be `mirror`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
 
 <br />
 
@@ -161,7 +162,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Detects uniform colored borders (like letterboxes/pillarboxes) and fills them with various filling modes.
   ```python
   import vs_tiletools
-  clip = vs_tiletools.autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16,128,128], tol=16, tol_c=None, fill="mirror")
+  clip = vs_tiletools.autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16,128,128], tol=16, fill="mirror")
   ```
   
   __*`clip`*__  
@@ -175,14 +176,13 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Does not offset sides that have detected 0 pixels.
 
   __*`color`*__  
-  Source clip border color in 8-bit scale `[16,128,128]`.
+  Source clip border color in 8-bit scale `[16, 128, 128]`.
 
-  __*`tol`*__, (*`tol_c`*)  
-  Tolerance to account for fluctuations in border color.  
-  Tolerance chroma is optional and defaults to `tol` if not set. 
+  __*`tol`*__
+  Tolerance to account for fluctuations in border color. Can be a single value or a list `[16, 16, 16]`.
 
   __*`fill`*__  
-  Filling mode can be `mirror`, `repeat`, `fillmargins`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
+  Filling mode can be `mirror`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
 
 <br />
 
