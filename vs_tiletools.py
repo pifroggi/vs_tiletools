@@ -8,15 +8,16 @@ from numbers import Real
 
 core     = vs.core
 fb_modes = {"repeat", "mirror", "fillmargins", "fixborders"}
+cv_modes = {"telea", "ns", "fsr"}
 
 def _clamp8(x):
     return max(0, min(255, x))
 
-def _check_modulus(value, subsampling, parameter, function, clip_format):
+def _check_modulus(value, subsampling, parameter, function_name, clip_format):
     if subsampling > 1 and value % subsampling != 0:
-        raise ValueError(f"vs_tiletools.{function}: {parameter} must be a multiple of {subsampling} for format {clip_format.name} due to chroma subsampling.")
+        raise ValueError(f"vs_tiletools.{function_name}: {parameter} must be a multiple of {subsampling} for format {clip_format.name} due to chroma subsampling.")
 
-def _normalize_color(mode, clip_format, function):
+def _normalize_color(mode, clip_format, function_name):
     # none lets addborders pick format appropriate black
     if mode is None or (isinstance(mode, str) and mode in {"black", "none", "None"}):
         return None
@@ -36,20 +37,135 @@ def _normalize_color(mode, clip_format, function):
     if len(raw_vals) < num_planes:
         raw_vals = raw_vals + [raw_vals[-1]] * (num_planes - len(raw_vals))
     elif len(raw_vals) > num_planes:
-        raise ValueError(f"vs_tiletools.{function}: Too many color values for the input format.")
+        raise ValueError(f"vs_tiletools.{function_name}: Too many color values for the input format.")
 
+    # check if color is in 8bit range
     if not all(0.0 <= v <= 255.0 for v in raw_vals):
-        raise ValueError(f"vs_tiletools.{function}: Color values must be in range 0–255.")
+        raise ValueError(f"vs_tiletools.{function_name}: Color values must be in range 0–255.")
 
+    # convert 8bit values to input clip range
     if sample_type == vs.INTEGER:
         dst_max = (1 << clip_format.bits_per_sample) - 1
         return [int(round(v * dst_max / 255.0)) for v in raw_vals]
-
     if sample_type == vs.FLOAT:
         return [v / 255.0 for v in raw_vals]
-
-    return False
     
+    # return false if not a color
+    return False
+
+def _maskedmerge(clipa, clipb, mask):
+    clipa_format = clipa.format
+    if clipa_format.sample_type == vs.FLOAT and clipa_format.bits_per_sample == 16:  # maskedmerge doesn't support float16, use expr instead
+        if clipa_format.num_planes > 1:
+            if mask.format.color_family == vs.GRAY and (clipa_format.subsampling_w or clipa_format.subsampling_h):
+                w = clipa.width  >> clipa_format.subsampling_w
+                h = clipa.height >> clipa_format.subsampling_h
+                mask_sub = core.resize.Point(mask, width=w, height=h)
+                mask = core.std.ShufflePlanes([mask, mask_sub, mask_sub], planes=[0, 0, 0], colorfamily=clipa_format.color_family)
+            else:
+                mask = core.std.ShufflePlanes(mask, planes=[0] * clipa_format.num_planes, colorfamily=clipa_format.color_family)
+        return core.std.Expr([clipa, clipb, mask], expr=["x 1 z - * y z * +"])
+    return core.std.MaskedMerge(clipa, clipb, mask, first_plane=True)
+
+def _fillborders(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
+    clip_format = clip.format
+    
+    # fillmargins is broken with lower than 12bit
+    broken_fillmargins = mode == "fillmargins" and  (clip_format.sample_type == vs.INTEGER and clip_format.bits_per_sample  < 12)
+    # fixborders is broken in RGB or when not 16bit 
+    broken_fixborders  = mode == "fixborders"  and ((clip_format.sample_type == vs.INTEGER and clip_format.bits_per_sample != 16) or clip_format.color_family == vs.RGB)
+    
+    # pad clip
+    clip = core.std.AddBorders(clip, left=left, right=right, top=top, bottom=bottom)
+
+    # if already integer or not broken mode use directly
+    if clip_format.sample_type == vs.INTEGER and not (broken_fillmargins or broken_fixborders):
+        return core.fb.FillBorders(clip, left=left, right=right, top=top, bottom=bottom, mode=mode)
+    
+    # if fixborders and RGB, convert to YUV
+    if mode == "fixborders" and clip_format.color_family == vs.RGB:
+        family = vs.YUV
+        matrix = {"matrix_s": "709"}
+    else:
+        family = clip_format.color_family
+        matrix = {}
+    
+    # convert to 16bit, fillboders, convert back
+    clip_format_int = core.query_video_format(family, vs.INTEGER, 16, clip_format.subsampling_w, clip_format.subsampling_h)
+    clip_fill = core.resize.Point(clip, format=clip_format_int.id, **matrix)
+    clip_fill = core.fb.FillBorders(clip_fill, left=left, right=right, top=top, bottom=bottom, mode=mode)
+    clip_fill = core.resize.Point(clip_fill, format=clip_format.id)
+    
+    # if original was integer, masking to protect inner float values is not needed
+    if clip_format.sample_type == vs.INTEGER:
+        return clip_fill
+    
+    # keep original float values inside, use filled border outside
+    mask_format = core.query_video_format(vs.GRAY, clip_format.sample_type, clip_format.bits_per_sample, 0, 0)
+    mask = core.std.BlankClip(clip, format=mask_format, width=clip.width - left - right, height=clip.height - top - bottom, color=0, keep=True)
+    whit = 1.0 if mask_format.sample_type == vs.FLOAT else (1 << mask_format.bits_per_sample) - 1
+    mask = core.std.AddBorders(mask, left=left, right=right, top=top, bottom=bottom, color=whit)
+    return _maskedmerge(clip, clip_fill, mask)
+
+def _cv_outpaint(clip, left=0, right=0, top=0, bottom=0, mode="telea", inwards=False):
+    clip_format = clip.format
+    
+    # select outpaint mode
+    if mode == "telea":
+        outpaint = lambda c, m: core.cv_inpaint.InpaintTelea(c, m, radius=3)
+    elif mode == "ns":
+        outpaint = lambda c, m: core.cv_inpaint.InpaintNS(c, m, radius=3)
+    elif mode == "fsr":
+        outpaint = lambda c, m: core.cv_inpaint.InpaintFSR(c, m)
+    
+    mask_width  = clip.width
+    mask_height = clip.height
+    if inwards:
+        mask_width  -= left + right
+        mask_height -= top + bottom
+    
+    # create outpaint mask
+    mask = core.std.BlankClip(clip, format=vs.GRAY8, width=mask_width, height=mask_height, color=0, keep=True)
+    mask = core.std.AddBorders(mask, left=left, right=right, top=top, bottom=bottom, color=255)
+
+    # if clip is rgb24 or gray8, no conversion is needed
+    if clip_format.id == vs.RGB24 or clip_format.id == vs.GRAY8:
+        if not inwards:
+            clip = core.std.AddBorders(clip, left=left, right=right, top=top, bottom=bottom)
+        clip = outpaint(clip, mask)
+        return clip
+    
+    clip_outpaint = clip
+    
+    # add 709 matrix prop for rgb roundtrip if input is yuv
+    if clip_format.color_family == vs.YUV:
+        clip_outpaint = core.std.SetFrameProps(clip_outpaint, _Matrix=vs.MATRIX_BT709)
+
+    # convert to 8bit rgb or gray
+    if clip_format.color_family == vs.GRAY:
+        clip_outpaint = core.resize.Point(clip_outpaint, format=vs.GRAY8)
+    else:
+        clip_outpaint = core.resize.Point(clip_outpaint, format=vs.RGB24)
+
+    # pad clips
+    if not inwards:
+        clip_outpaint = core.std.AddBorders(clip_outpaint, left=left, right=right, top=top, bottom=bottom)
+        clip          = core.std.AddBorders(clip         , left=left, right=right, top=top, bottom=bottom)
+    
+    # outpaint
+    clip_outpaint = outpaint(clip_outpaint, mask)
+    
+    # convert back
+    if clip_format.color_family == vs.YUV:
+        clip_outpaint = core.resize.Bilinear(clip_outpaint, format=clip_format.id, matrix_s="709")
+    else:
+        clip_outpaint = core.resize.Bilinear(clip_outpaint, format=clip_format.id)
+    
+    # keep original inside, use outpainted border outside
+    mask_format = core.query_video_format(vs.GRAY, clip_format.sample_type, clip_format.bits_per_sample, 0, 0)
+    mask = core.resize.Point(mask, format=mask_format.id, range_in_s="full")       # set range_in to avoid out of range values if this converts to float
+    return _maskedmerge(clip, clip_outpaint, mask)
+
 
 def pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
     """Pads a clip with various padding modes.
@@ -57,7 +173,8 @@ def pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
     Args:
         clip: Clip to be padded. Any format.
         left, right, top, bottom: Padding amount in pixels.
-        mode: Padding mode can be "mirror", "repeat", "fillmargins", "black", or a custom color in 8-bit scale [128, 128, 128].
+        mode: Padding mode can be "mirror", "repeat", "fillmargins", "telea, "ns", "fsr", "black", or a custom color
+            in 8-bit scale [128, 128, 128].
     """
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.pad: Clip must be a vapoursynth clip.")
@@ -85,24 +202,17 @@ def pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
 
     # fillborder modes
     elif isinstance(mode, str) and mode in fb_modes:
-        # convert to 16bit, fillboders, convert back
-        if clip_format.sample_type != vs.INTEGER:
-            clip_format_int = core.query_video_format(clip_format.color_family, vs.INTEGER, 16, clip_format.subsampling_w, clip_format.subsampling_h)
-            clip = core.resize.Point(clip, format=clip_format_int.id)
-            clip = core.std.AddBorders(clip, left=left, right=right, top=top, bottom=bottom)
-            clip = core.fb.FillBorders(clip, left=left, right=right, top=top, bottom=bottom, mode=mode)
-            out  = core.resize.Point(clip, format=clip_format.id)
-        
-        # if already integer use directly
-        else:
-            clip = core.std.AddBorders(clip, left=left, right=right, top=top, bottom=bottom)
-            out  = core.fb.FillBorders(clip, left=left, right=right, top=top, bottom=bottom, mode=mode)
+        out = _fillborders(clip, left=left, right=right, top=top, bottom=bottom, mode=mode)
+
+    # outpaint modes
+    elif isinstance(mode, str) and mode in cv_modes:
+        out = _cv_outpaint(clip, left=left, right=right, top=top, bottom=bottom, mode=mode)
 
     # solid color
     else:
         color = _normalize_color(mode, clip_format, "pad")
         if color is False:
-            raise TypeError("vs_tiletools.pad: Mode must be 'mirror', 'repeat', 'fillmargins', 'black', or custom color values [128, 128, 128].")
+            raise TypeError("vs_tiletools.pad: Mode must be 'mirror', 'repeat', 'fillmargins', 'telea', 'ns', 'fsr', 'black', or custom color values [128, 128, 128].")
         out = core.std.AddBorders(clip, left=left, right=right, top=top, bottom=bottom, color=color)
 
     # pad props for auto crop
@@ -189,8 +299,8 @@ def mod(clip, modulus=64, mode="mirror"):
     Args:
         clip: Source clip. Any format.
         modulus: Dimensions will be a multiple of this value. Can be a single value, or a pair for width and height [64, 32].
-        mode: Mode to reach the next upper multiple via padding can be "mirror", "repeat", "fillmargins", "black", a custom
-            color in 8-bit scale [128, 128, 128], or "discard" to crop to the next lower multiple.
+        mode: Mode to reach the next upper multiple via padding can be "mirror", "repeat", "fillmargins", "telea, "ns", "fsr",
+            "black", a custom color in 8-bit scale [128, 128, 128], or "discard" to crop to the next lower multiple.
     """
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.mod: Clip must be a vapoursynth clip.")
@@ -222,8 +332,8 @@ def mod(clip, modulus=64, mode="mirror"):
         return core.std.Crop(clip, right=crop_r, bottom=crop_b)
 
     # check if pad mode is valid
-    if not ((isinstance(mode, str) and mode in fb_modes) or (_normalize_color(mode, clip_format, "mod") is not False)):
-        raise TypeError("vs_tiletools.mod: Mode must be 'mirror', 'repeat', 'fillmargins', 'black', custom color values [128, 128, 128], or 'discard'.")
+    if not ((isinstance(mode, str) and (mode in fb_modes or mode in cv_modes)) or (_normalize_color(mode, clip_format, "mod") is not False)):
+        raise TypeError("vs_tiletools.mod: Mode must be 'mirror', 'repeat', 'fillmargins', 'telea', 'ns', 'fsr', 'black', custom color values [128, 128, 128], or 'discard'.")
 
     # pad to next upper multiple
     pad_w  = (-width)  % mod_w
@@ -231,7 +341,7 @@ def mod(clip, modulus=64, mode="mirror"):
     return pad(clip, right=pad_w, bottom=pad_h, mode=mode)  # call pad() even if pad is 0, so rops are written and auto crop still works 
 
 
-def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 128], tol=16, tol_c=None, fill="mirror"):
+def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 128], tol=16, fill="mirror"):
     """Detects uniform colored borders (like letterboxes/pillarboxes) and fills them with various filling modes.
 
     Args:
@@ -240,9 +350,9 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
         offset: Offsets the detected fill area by an extra amount in pixels. Useful if the borders are slightly blurry.
             Does not offset sides that have detected 0 pixels.
         color: Source clip border color in 8-bit scale [16, 128, 128].
-        tol: Tolerance to account for fluctuations in border color.
-        tol_c: Optional chroma tolerance; defaults to "tol" if not set.
-        fill: Filling mode can be "mirror", "repeat", "fillmargins", "black", or a custom color in 8-bit scale [128, 128, 128].
+        tol: Tolerance to account for fluctuations in border color. Can be a single value or a list [16, 16, 16].
+        fill: Filling mode can be "mirror", "repeat", "fillmargins", "telea", "ns", "fsr", "black", or a custom color
+            in 8-bit scale [128, 128, 128].
     """
     
     # checks
@@ -254,21 +364,32 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
         raise ValueError("vs_tiletools.autofill: Clip must be in YUV format.")
     if not all(0.0 <= v <= 255.0 for v in color):
         raise ValueError("vs_tiletools.autofill: Color values must be in range 0–255.")
-    if tol < 0:
+    
+    # normalize tol
+    num_planes  = clip.format.num_planes
+    if isinstance(tol, Real):
+        tol = [float(tol)]
+    elif isinstance(tol, (list, tuple)) and len(tol) > 0 and all(isinstance(v, Real) for v in tol):
+        tol = [float(v) for v in tol]
+    else:
+        raise ValueError("vs_tiletools.autofill: Tolerance must be a single value or a list [16, 16, 16].")
+    if len(tol) < num_planes:
+        tol = tol + [tol[-1]] * (num_planes - len(tol))
+    elif len(tol) > num_planes:
+        raise ValueError("vs_tiletools.autofill: Too many tolerance values for the input format.")
+    if not all(t >= 0 for t in tol):
         raise ValueError("vs_tiletools.autofill: Tolerance can not be negative.")
-    if tol_c is not None and tol_c < 0:
-        raise ValueError("vs_tiletools.autofill: Chroma tolerance can not negative.")
+    tol_y, tol_u, tol_v = tol
+
+    # checks
     if min(left, right, top, bottom) < 0:
         raise ValueError("vs_tiletools.autofill: Max fill values can not be negative.")
     if not any((left, right, top, bottom)):
         return clip
 
-
+    # check subsampling
     sub_w = 1 << (clip_format.subsampling_w or 0)
     sub_h = 1 << (clip_format.subsampling_h or 0)
-    tol_c = tol if tol_c is None else tol_c
-
-    # check subsampling
     _check_modulus(left,        sub_w, "Left maximum",   "autofill", clip_format)
     _check_modulus(right,       sub_w, "Right maximum",  "autofill", clip_format)
     _check_modulus(top,         sub_h, "Top maximum",    "autofill", clip_format)
@@ -282,17 +403,18 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
         clip = core.resize.Point(clip, format=clip_format_int.id)
 
     # compute fill amount
-    y, u, v    = map(int, color) # no color nomalization, cropvalues takes 8bit and scales
-    color_low  = [_clamp8(y - tol), _clamp8(u - tol_c), _clamp8(v - tol_c)]
-    color_high = [_clamp8(y + tol), _clamp8(u + tol_c), _clamp8(v + tol_c)]
+    y, u, v    = map(int, color) # no color nomalization needed, cropvalues plugin takes 8bit directly and scales
+    color_low  = [_clamp8(y - tol_y), _clamp8(u - tol_u), _clamp8(v - tol_v)]
+    color_high = [_clamp8(y + tol_y), _clamp8(u + tol_u), _clamp8(v + tol_v)]
     clip       = core.acrop.CropValues(clip, top=top, bottom=bottom, left=left, right=right, color=color_low, color_second=color_high)
 
-    # fill border mode or solid color
+    # fill mode or solid color
     fb = isinstance(fill, str) and fill in fb_modes
-    if not fb:
+    cv = isinstance(fill, str) and fill in cv_modes
+    if not fb and not cv:
         fill_color = _normalize_color(fill, clip.format, "autofill")
         if fill_color is False:
-            raise TypeError("vs_tiletools.autofill: Fill must be 'mirror', 'repeat', 'fillmargins', 'black', or custom color values [128, 128, 128].")
+            raise TypeError("vs_tiletools.autofill: Fill must be 'mirror', 'repeat', 'fillmargins', 'telea', 'ns', 'fsr', 'black', or custom color values [128, 128, 128].")
 
     def _fill(n, f):
         # get values
@@ -314,6 +436,8 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
             return clip
         elif fb:
             return core.fb.FillBorders(clip, left=l, right=r, top=t, bottom=b, mode=fill)
+        elif cv:
+            return _cv_outpaint(clip, left=l, right=r, top=t, bottom=b, mode=fill, inwards=True)
         else:
             cropped = core.std.Crop(clip, left=l, right=r, top=t, bottom=b)
             return core.std.AddBorders(cropped, left=l, right=r, top=t, bottom=b, color=fill_color)
@@ -335,7 +459,8 @@ def tile(clip, width=256, height=256, overlap=16, padding="mirror"):
         overlap: Overlap from one tile to the next. When overlap is increased the tile size is not altered, so the amount
             of tiles per frame increases. Can be a single value or a pair for vertical and horizontal [16, 16].
         padding: How to handle tiles that are smaller than tile size.  These can be padded with modes "mirror", "repeat",
-            "fillmargins", "black", a custom color in 8 bit scale [128, 128, 128], or just discarded with "discard".
+            "fillmargins", "telea", "ns", "fsr", "black", a custom color in 8 bit scale [128, 128, 128], or just discarded
+            with "discard".
     """
     
     # input checks
@@ -386,8 +511,8 @@ def tile(clip, width=256, height=256, overlap=16, padding="mirror"):
         crop_b      = orig_height - used_height
         clip        = clip if (crop_r == 0 and crop_b == 0) else core.std.Crop(clip, right=crop_r, bottom=crop_b)
     else:
-        if not ((isinstance(padding, str) and (padding in fb_modes or padding == "black")) or isinstance(padding, (Real, list, tuple))):
-            raise TypeError("vs_tiletools.tile: Padding must be 'mirror', 'repeat', 'fillmargins', 'discard', 'black', or color values [128, 128, 128].")
+        if not ((isinstance(padding, str) and (padding in fb_modes or padding in cv_modes or padding == "black")) or isinstance(padding, (Real, list, tuple))):
+            raise TypeError("vs_tiletools.tile: Padding must be 'mirror', 'repeat', 'fillmargins', 'telea', 'ns', 'fsr', 'discard', 'black', or color values [128, 128, 128].")
     
         # pad tiles that are smaller than tile size
         tiles_x          = 1 + (0 if orig_width  <= width  else (orig_width  - width  + stride_x - 1) // stride_x)
@@ -622,7 +747,7 @@ def untile(clip, fade=False, full_width=None, full_height=None, overlap=None):
         overlap_left   = core.std.Crop(left,  left=left.width - overlap_width)
         overlap_right  = core.std.Crop(right, right=right.width - overlap_width)
         mask           = _mask_horizontal(left.height)
-        overlap        = core.std.MaskedMerge(overlap_left, overlap_right, mask)
+        overlap        = _maskedmerge(overlap_left, overlap_right, mask)
         return core.std.StackHorizontal([keep_left, overlap, keep_right])
 
     def _fade_vertical(top, bottom):
@@ -634,7 +759,7 @@ def untile(clip, fade=False, full_width=None, full_height=None, overlap=None):
         overlap_top    = core.std.Crop(top,    top=top.height - overlap_height)
         overlap_bottom = core.std.Crop(bottom, bottom=bottom.height - overlap_height)
         mask           = _mask_vertical(top.width)
-        overlap        = core.std.MaskedMerge(overlap_top, overlap_bottom, mask)
+        overlap        = _maskedmerge(overlap_top, overlap_bottom, mask)
         return core.std.StackVertical([keep_top, overlap, keep_bottom])
 
     if not fade:
@@ -841,27 +966,24 @@ def crossfade(clipa, clipb, length=10):
     fade_levels = []
     
     # get correct gray format to match clip
-    if clip_format.color_family == vs.GRAY:
-        mask_fmt = clip_format
-    else:
-        mask_fmt = core.query_video_format(vs.GRAY, clip_format.sample_type, clip_format.bits_per_sample, 0, 0)
+    mask_format = core.query_video_format(vs.GRAY, clip_format.sample_type, clip_format.bits_per_sample, 0, 0)
 
     # generate 1 frame long clips with increasing brightness
     if clipa.format.sample_type == vs.INTEGER:
         peak = (1 << clipa.format.bits_per_sample) - 1
         for n in range(length):
             v = int(round(peak * (n + 1) / (length + 1)))
-            fade_levels.append(core.std.BlankClip(clip=a_tail, format=mask_fmt.id, length=1, color=[v], keep=True))
+            fade_levels.append(core.std.BlankClip(clip=a_tail, format=mask_format.id, length=1, color=[v], keep=True))
     else:  # float
         for n in range(length):
             w = (n + 1) / (length + 1)
-            fade_levels.append(core.std.BlankClip(clip=a_tail, format=mask_fmt.id, length=1, color=[w], keep=True))
+            fade_levels.append(core.std.BlankClip(clip=a_tail, format=mask_format.id, length=1, color=[w], keep=True))
 
     # splice all levels together to get fade mask clip
     mask = core.std.Splice(fade_levels)
 
     # blend and reassemble
-    fade = core.std.MaskedMerge(clipa=a_tail, clipb=b_head, mask=mask)
+    fade = _maskedmerge(a_tail, b_head, mask)
     parts = []
     if clipa.num_frames > length:
         parts.append(clipa[:-length])
