@@ -178,7 +178,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   __*`color`*__  
   Source clip border color in 8-bit scale `[16, 128, 128]`.
 
-  __*`tol`*__
+  __*`tol`*__  
   Tolerance to account for fluctuations in border color. Can be a single value or a list `[16, 16, 16]`.
 
   __*`fill`*__  
