@@ -76,8 +76,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Tile size of a single tile in pixel.
 
   __*`overlap`*__  
-  Overlap from one tile to the next. When overlap is increased the tile size is not altered, so the amount of tiles per frame increases.  
-  Can be a single value or a pair for horizontal and vertical `[16, 16]`.
+  Overlap from one tile to the next. When overlap is increased the tile size is not altered, so the amount of tiles per frame increases. Can be a single value or a pair for horizontal and vertical `[16, 32]`.
 
   __*`padding`*__  
   How to handle tiles that are smaller than tile size. These can be padded with modes `mirror`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, or just discarded with `discard`.
@@ -220,7 +219,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Windowed clip. Any format.
   
   __*`fade`*__  
-  If fade is True, the overlap will be used to crossfade between the windows to remove jumps/hitches.  
+  If fade is True, the overlap will be used to crossfade between the windows.  
   If fade is False, the overlap will be trimmed.
 
   __*`full_length`*, *`window_length`*, *`overlap`* (optional)__  
