@@ -67,7 +67,7 @@ def _maskedmerge(clipa, clipb, mask):
         return core.std.Expr([clipa, clipb, mask], expr=["x 1 z - * y z * +"])
     return core.std.MaskedMerge(clipa, clipb, mask, first_plane=True)
 
-def _fillborders(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
+def _fillborders(clip, left=0, right=0, top=0, bottom=0, mode="mirror", inwards=False):
     clip_format = clip.format
     
     # fillmargins is broken with lower than 12bit
@@ -76,7 +76,8 @@ def _fillborders(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
     broken_fixborders  = mode == "fixborders"  and ((clip_format.sample_type == vs.INTEGER and clip_format.bits_per_sample != 16) or clip_format.color_family == vs.RGB)
     
     # pad clip
-    clip = core.std.AddBorders(clip, left=left, right=right, top=top, bottom=bottom)
+    if not inwards:
+        clip = core.std.AddBorders(clip, left=left, right=right, top=top, bottom=bottom)
     
     # if already integer or not broken mode use directly
     if clip_format.sample_type == vs.INTEGER and not (broken_fillmargins or broken_fixborders):
@@ -433,7 +434,7 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
         if (t | b | l | r) == 0:
             return clip
         elif fb:
-            return core.fb.FillBorders(clip, left=l, right=r, top=t, bottom=b, mode=fill)
+            return _fillborders(clip, left=l, right=r, top=t, bottom=b, mode=fill, inwards=True)
         elif cv:
             return _cv_outpaint(clip, left=l, right=r, top=t, bottom=b, mode=fill, inwards=True)
         else:
