@@ -77,7 +77,7 @@ def _fillborders(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
     
     # pad clip
     clip = core.std.AddBorders(clip, left=left, right=right, top=top, bottom=bottom)
-
+    
     # if already integer or not broken mode use directly
     if clip_format.sample_type == vs.INTEGER and not (broken_fillmargins or broken_fixborders):
         return core.fb.FillBorders(clip, left=left, right=right, top=top, bottom=bottom, mode=mode)
@@ -95,9 +95,7 @@ def _fillborders(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
     clip_fill = core.resize.Point(clip, format=clip_format_int.id, **matrix)
     clip_fill = core.fb.FillBorders(clip_fill, left=left, right=right, top=top, bottom=bottom, mode=mode)
     clip_fill = core.resize.Point(clip_fill, format=clip_format.id)
-    
-    # if original was integer, masking to protect inner float values is not needed
-    if clip_format.sample_type == vs.INTEGER:
+    if clip_format.sample_type == vs.INTEGER:  # if original was integer, masking to protect inner float values is not needed
         return clip_fill
     
     # keep original float values inside, use filled border outside
@@ -106,7 +104,7 @@ def _fillborders(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
     whit = 1.0 if mask_format.sample_type == vs.FLOAT else (1 << mask_format.bits_per_sample) - 1
     mask = core.std.AddBorders(mask, left=left, right=right, top=top, bottom=bottom, color=whit)
     return _maskedmerge(clip, clip_fill, mask)
-
+    
 def _cv_outpaint(clip, left=0, right=0, top=0, bottom=0, mode="telea", inwards=False):
     clip_format = clip.format
     
@@ -173,7 +171,7 @@ def pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
     Args:
         clip: Clip to be padded. Any format.
         left, right, top, bottom: Padding amount in pixels.
-        mode: Padding mode can be "mirror", "repeat", "fillmargins", "telea, "ns", "fsr", "black", or a custom color
+        mode: Padding mode can be "mirror", "repeat", "fillmargins", "telea", "ns", "fsr", "black", or a custom color
             in 8-bit scale [128, 128, 128].
     """
     if not isinstance(clip, vs.VideoNode):
@@ -299,7 +297,7 @@ def mod(clip, modulus=64, mode="mirror"):
     Args:
         clip: Source clip. Any format.
         modulus: Dimensions will be a multiple of this value. Can be a single value, or a pair for width and height [64, 32].
-        mode: Mode to reach the next upper multiple via padding can be "mirror", "repeat", "fillmargins", "telea, "ns", "fsr",
+        mode: Mode to reach the next upper multiple via padding can be "mirror", "repeat", "fillmargins", "telea", "ns", "fsr",
             "black", a custom color in 8-bit scale [128, 128, 128], or "discard" to crop to the next lower multiple.
     """
     if not isinstance(clip, vs.VideoNode):
@@ -338,7 +336,7 @@ def mod(clip, modulus=64, mode="mirror"):
     # pad to next upper multiple
     pad_w  = (-width)  % mod_w
     pad_h  = (-height) % mod_h
-    return pad(clip, right=pad_w, bottom=pad_h, mode=mode)  # call pad() even if pad is 0, so rops are written and auto crop still works 
+    return pad(clip, right=pad_w, bottom=pad_h, mode=mode)  # call pad() even if pad is 0, so props are written and auto crop still works 
 
 
 def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 128], tol=16, fill="mirror"):
@@ -457,7 +455,7 @@ def tile(clip, width=256, height=256, overlap=16, padding="mirror"):
         clip: Clip to tile. Any format.
         width, height: Tile size of a single tile in pixel.
         overlap: Overlap from one tile to the next. When overlap is increased the tile size is not altered, so the amount
-            of tiles per frame increases. Can be a single value or a pair for vertical and horizontal [16, 16].
+            of tiles per frame increases. Can be a single value or a pair for vertical and horizontal [16, 32].
         padding: How to handle tiles that are smaller than tile size.  These can be padded with modes "mirror", "repeat",
             "fillmargins", "telea", "ns", "fsr", "black", a custom color in 8 bit scale [128, 128, 128], or just discarded
             with "discard".
