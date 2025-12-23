@@ -286,5 +286,25 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
 <br />
 
+## Padding Modes
+Full explanation for all padding modes.
+
+* __Spatial__
+  * `mirror` Reflects the image into the padded region.
+  * `repeat` Repeats the outermost pixel row/column.
+  * `fillmargins` Similar to repeat, but the top/bottom padding get more blurry the further away it is.
+  * `telea` Telea's algorithm. Similar to fillmargins, but all padding get more blurry the further away it is.
+  * `ns` Navier-Stokes algorithm. Similar to telea, but less blurry.
+  * `fsr` Frequency Selective Reconstructiom algorithm. Better at keeping patterns/textures, but is slow.
+  * `black` Solid black padding.
+  * `[128, 128, 128]` Solid custom color padding. 8-bit values per plane in the clip’s color family.
+
+* __Temporal__
+  * `mirror` Reverses the clip at the start/end.
+  * `repeat` Repeats the first/last frame.
+  * `black` Appends solid black frames.
+  * `[128, 128, 128]` Appends frames in a solid custom color. 8-bit values per plane in the clip’s color family.
+
+
 > [!NOTE]
 > Padding mode "fixborders" is additionally supported in all functions, if the [fillborders](https://github.com/dubhater/vapoursynth-fillborders) plugin is compiled from source. See [this](https://github.com/dubhater/vapoursynth-fillborders/issues/7) issue.
