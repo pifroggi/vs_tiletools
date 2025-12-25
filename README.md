@@ -28,12 +28,12 @@ clip = core.someheavyfilter.AIUpscale(clip)           # placeholder resource int
 clip = vs_tiletools.untile(clip)                      # reassembles the tiles into full frames
 ```
 
-
 <br />
 
 ## Table of Contents
 * [Requirements](#requirements)
 * [Setup](#setup)
+* [Padding Modes](#padding-modes)
 * [Spatial Functions](#spatial-functions)
   * [Tile](#tile) - Splits each frame into tiles of fixed dimensions
   * [Untile](#untile) - Auto reassembles tiles from `tile()`, even if resized
@@ -64,7 +64,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
 ## Spatial Functions
 * ### Tile
-  Splits each frame into tiles of fixed dimensions to reduce resource requirements. Outputs a clip with all tiles in order.
+  Splits each frame into tiles of fixed dimensions to reduce resource requirements. Outputs a clip with all tiles in order. All filters applied to the tiled clip should be spatial only.
   ```python
   import vs_tiletools
   clip = vs_tiletools.tile(clip, width=256, height=256, overlap=16, padding="mirror")
@@ -158,6 +158,24 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
 <br />
 
+* ### Croprandom
+  Crops to the given dimensions, but randomly repositions the crop window each frame.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.croprandom(clip, width=256, height=256, seed=0)
+  ```
+  
+  __*`clip`*__  
+  Clip to be cropped. Any format.
+
+  __*`width`*, *`height`*__  
+  Cropped window dimensions in pixels.
+
+  __*`seed`*__  
+  Seed used for deterministic crop randomization.
+
+<br />
+
 * ### Autofill
   Detects uniform colored borders (like letterboxes/pillarboxes) and fills them with various filling modes.
   ```python
@@ -183,24 +201,6 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
   __*`fill`*__  
   Filling mode can be `mirror`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
-
-<br />
-
-* ### Croprandom
-  Crops to the given dimensions, but randomly repositions the crop window each frame.
-  ```python
-  import vs_tiletools
-  clip = vs_tiletools.croprandom(clip, width=256, height=256, seed=0)
-  ```
-  
-  __*`clip`*__  
-  Clip to be cropped. Any format.
-
-  __*`width`*, *`height`*__  
-  Cropped window dimensions in pixels.
-
-  __*`seed`*__  
-  Seed used for deterministic crop randomization.
 
 <br />
 
@@ -303,8 +303,6 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
 <br />
 
-<br />
-
 ## Padding Modes
 Full explanation for all padding modes.
 
@@ -324,6 +322,7 @@ Full explanation for all padding modes.
   * `black` Appends solid black frames.
   * `[128, 128, 128]` Appends frames in a solid custom color. 8-bit values per plane in the clip’s color family.
 
+<br />
 
 > [!NOTE]
 > Padding mode "fixborders" is additionally supported in all functions, if the [fillborders](https://github.com/dubhater/vapoursynth-fillborders) plugin is compiled from source. See [this](https://github.com/dubhater/vapoursynth-fillborders/issues/7) issue.
