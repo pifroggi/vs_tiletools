@@ -41,6 +41,7 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
   * [Crop](#crop) - Auto crops padded clip from `pad()` or `mod()`, even if resized
   * [Mod](#mod) - Pads or crops a clip so width and height are multiples of the given modulus
   * [Autofill](#autofill) - Auto detects borders and fills them with various fill modes
+  * [Croprandom](#croprandom) - Crops to given dimensions, but randomly repositions the window each frame
 * [Temporal Functions](#temporal-functions)
   * [Window](#window) - Inserts temporal overlaps a the end of fixed length temporal windows
   * [Unwindow](#unwindow) - Auto removes or crossfades overlaps added by `window()`
@@ -182,6 +183,24 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
   __*`fill`*__  
   Filling mode can be `mirror`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
+
+<br />
+
+* ### Croprandom
+  Crops to the given dimensions, but randomly repositions the crop window each frame.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.croprandom(clip, width=256, height=256, seed=0)
+  ```
+  
+  __*`clip`*__  
+  Clip to be cropped. Any format.
+
+  __*`width`*, *`height`*__  
+  Cropped window dimensions in pixels.
+
+  __*`seed`*__  
+  Seed used for deterministic crop randomization.
 
 <br />
 
