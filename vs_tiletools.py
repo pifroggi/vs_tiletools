@@ -3,6 +3,7 @@
 # or tepete and pifroggi on Discord
 
 import json
+import random
 import vapoursynth as vs
 from numbers import Real
 
@@ -177,6 +178,8 @@ def pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
     """
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.pad: Clip must be a vapoursynth clip.")
+    if clip.format.id == vs.PresetVideoFormat.NONE or clip.width == 0 or clip.height == 0:
+        raise TypeError("vs_tiletools.pad: Clip must have constant format and dimensions.")
         
     left, right, top, bottom = int(left), int(right), int(top), int(bottom)
     clip_format = clip.format
@@ -229,6 +232,8 @@ def crop(clip, left=None, right=None, top=None, bottom=None):
     """
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.crop: Clip must be a vapoursynth clip.")
+    if clip.format.id == vs.PresetVideoFormat.NONE or clip.width == 0 or clip.height == 0:
+        raise TypeError("vs_tiletools.crop: Clip must have constant format and dimensions.")
 
     clip_format = clip.format
     width       = clip.width
@@ -303,6 +308,8 @@ def mod(clip, modulus=64, mode="mirror"):
     """
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.mod: Clip must be a vapoursynth clip.")
+    if clip.format.id == vs.PresetVideoFormat.NONE or clip.width == 0 or clip.height == 0:
+        raise TypeError("vs_tiletools.mod: Clip must have constant format and dimensions.")
     if isinstance(modulus, (tuple, list)):
         if len(modulus) != 2:
             raise ValueError("vs_tiletools.mod: Modulus must be a single value, or a pair for width and height [64, 32].")
@@ -359,6 +366,8 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.autofill: Clip must be a vapoursynth clip.")
     clip_format = clip.format
+    if clip_format.id == vs.PresetVideoFormat.NONE or clip.width == 0 or clip.height == 0:
+        raise TypeError("vs_tiletools.autofill: Clip must have constant format and dimensions.")
     if clip_format.color_family != vs.YUV:
         raise ValueError("vs_tiletools.autofill: Clip must be in YUV format.")
     if not all(0.0 <= v <= 255.0 for v in color):
@@ -449,6 +458,47 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
     return out
 
 
+def croprandom(clip, width=256, height=256, seed=0):
+    """Randomly crops a different region each frame with a deterministic seed.
+
+    Args:
+        clip: Source clip. Any format.
+        width, height: Cropped output dimensions in pixels.
+        seed: Seed used for deterministic crop randomization.
+    """
+    
+    # checks
+    width, height, seed = map(int, (width, height, seed))
+    if not isinstance(clip, vs.VideoNode):
+        raise TypeError("vs_tiletools.croprandom: Clip must be a vapoursynth clip.")
+    if clip.format.id == vs.PresetVideoFormat.NONE or clip.width == 0 or clip.height == 0:
+        raise TypeError("vs_tiletools.croprandom: Clip must have constant format and dimensions.")
+    if clip.width < width or clip.height < height:
+        raise ValueError("vs_tiletools.croprandom: Clip dimensions can not be smaller than crop width/height.")
+    if width <= 0 or height <= 0:
+        raise ValueError("vs_tiletools.croprandom: Crop width/height must be larger than 0.")
+    clip_format = clip.format
+
+    # check subsampling
+    sub_w = 1 << (clip_format.subsampling_w or 0)
+    sub_h = 1 << (clip_format.subsampling_h or 0)
+    _check_modulus(width,  sub_w, "Crop width",  "croprandom", clip_format)
+    _check_modulus(height, sub_h, "Crop height", "croprandom", clip_format)
+
+    # crop with repositioned crop window each frame
+    max_left = clip.width  - width
+    max_top  = clip.height - height
+    base     = core.std.BlankClip(clip, width=width, height=height, keep=True)
+
+    def _crop(n) -> vs.VideoNode:
+        rng  = random.Random(seed ^ (n * 0x9E3779B1))
+        left = rng.randrange(0, max_left + 1, sub_w)
+        top  = rng.randrange(0, max_top  + 1, sub_h)
+        return core.std.CropAbs(clip, width=width, height=height, left=left, top=top)
+
+    return core.std.FrameEval(base, _crop, clip_src=[clip])
+
+
 def tile(clip, width=256, height=256, overlap=16, padding="mirror"):
     """Splits a clip into tiles of fixed dimensions to reduce resource requirements. Outputs a clip with all tiles in order.
 
@@ -465,6 +515,8 @@ def tile(clip, width=256, height=256, overlap=16, padding="mirror"):
     # input checks
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.tile: Clip must be a vapoursynth clip.")
+    if clip.format.id == vs.PresetVideoFormat.NONE or clip.width == 0 or clip.height == 0:
+        raise TypeError("vs_tiletools.tile: Clip must have constant format and dimensions.")
     if width <= 1 or height <= 1:
         raise ValueError("vs_tiletools.tile: Width and height must be positive.")
 
@@ -568,6 +620,8 @@ def untile(clip, fade=False, full_width=None, full_height=None, overlap=None):
     # check input
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.untile: Clip must be a vapoursynth clip.")
+    if clip.format.id == vs.PresetVideoFormat.NONE or clip.width == 0 or clip.height == 0:
+        raise TypeError("vs_tiletools.untile: Clip must have constant format and dimensions.")
 
     # input clip props
     tile_width  = clip.width
@@ -800,6 +854,8 @@ def tpad(clip, start=0, end=0, length=None, mode="mirror"):
     """
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.tpad: Clip must be a vapoursynth clip.")
+    if clip.format.id == vs.PresetVideoFormat.NONE or clip.width == 0 or clip.height == 0:
+        raise TypeError("vs_tiletools.tpad: Clip must have constant format and dimensions.")
     if length is not None and (start or end):
         raise ValueError("vs_tiletools.tpad: Use either start and end to add that number of frames, or length to pad to an absolute length.")
     if length is not None and length < 1:
@@ -893,6 +949,8 @@ def trim(clip, start=None, end=None, length=None):
     """
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.trim: Clip must be a vapoursynth clip.")
+    if clip.format.id == vs.PresetVideoFormat.NONE or clip.width == 0 or clip.height == 0:
+        raise TypeError("vs_tiletools.trim: Clip must have constant format and dimensions.")
 
     prop_key = "tiletools_tpadprops"
     manual   = any(v is not None for v in (start, end, length))
@@ -953,6 +1011,10 @@ def crossfade(clipa, clipb, length=10):
         raise TypeError("vs_tiletools.crossfade: First input clip must be a vapoursynth clip.")
     if not isinstance(clipb, vs.VideoNode):
         raise TypeError("vs_tiletools.crossfade: Second input clip must be a vapoursynth clip.")
+    if clipa.format.id == vs.PresetVideoFormat.NONE or clipa.width == 0 or clipa.height == 0:
+        raise TypeError("vs_tiletools.crossfade: First input clip must have constant format and dimensions.")
+    if clipb.format.id == vs.PresetVideoFormat.NONE or clipb.width == 0 or clipb.height == 0:
+        raise TypeError("vs_tiletools.crossfade: Second input clip must have constant format and dimensions.")
     if clipa.format.id != clipb.format.id or clipa.width != clipb.width or clipa.height != clipb.height:
         raise ValueError("vs_tiletools.crossfade: Both clips must have the same format and dimensions.")
     if length <= 0:
@@ -1010,6 +1072,8 @@ def window(clip, length=20, overlap=5, padding="mirror"):
     # checks
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.window: Clip must be a vapoursynth clip.")
+    if clip.format.id == vs.PresetVideoFormat.NONE or clip.width == 0 or clip.height == 0:
+        raise TypeError("vs_tiletools.window: Clip must have constant format and dimensions.")
     if length < 1:
         raise ValueError("vs_tiletools.window: Temporal window length must be at least 1.")
     if overlap < 0 or overlap >= length:
@@ -1088,6 +1152,8 @@ def unwindow(clip, fade=False, full_length=None, window_length=None, overlap=Non
     """
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.unwindow: Clip must be a vapoursynth clip.")
+    if clip.format.id == vs.PresetVideoFormat.NONE or clip.width == 0 or clip.height == 0:
+        raise TypeError("vs_tiletools.unwindow: Clip must have constant format and dimensions.")
 
     # decide mode
     prop_key = "tiletools_windowprops"
