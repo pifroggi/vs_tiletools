@@ -862,7 +862,7 @@ def tpad(clip, start=0, end=0, length=None, mode="mirror"):
         clip: Clip to pad. Any format.
         start, end: Number of frames to add at the start and/or end. Mutually exclusive with length. 
         length: Pads clip to this absolute number of frames. Mutually exclusive with start/end. 
-        mode: "mirror", "repeat", "black", or a custom color in 8-bit scale like [128, 128, 128].
+        mode: "mirror", "repeat", "loop", "black", or a custom color in 8-bit scale like [128, 128, 128].
     """
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.tpad: Clip must be a vapoursynth clip.")
@@ -889,7 +889,7 @@ def tpad(clip, start=0, end=0, length=None, mode="mirror"):
     out         = clip
 
     def _end_pad(clip, n):
-        # mirror frames
+        # mirror clip
         if pad_mode == "mirror":
             if clip.num_frames == 1:
                 return core.std.Loop(clip, times=n)
@@ -899,6 +899,13 @@ def tpad(clip, start=0, end=0, length=None, mode="mirror"):
             repeats  = (n + pingpong.num_frames - 1) // max(1, pingpong.num_frames)
             return (pingpong * repeats)[:n]
         
+        # loop clip
+        if pad_mode == "loop":
+            if clip.num_frames == 1:
+                return core.std.Loop(clip, times=n)
+            repeats = (n + clip.num_frames - 1) // max(1, clip.num_frames)
+            return (clip * repeats)[:n]
+        
         # repeat last frame
         if pad_mode == "repeat":
             last = core.std.Trim(clip, first=clip.num_frames - 1, length=1)
@@ -907,13 +914,13 @@ def tpad(clip, start=0, end=0, length=None, mode="mirror"):
         # solid color
         color = _normalize_color(pad_mode, clip.format, "tpad")
         if color is False:
-            raise ValueError("vs_tiletools.tpad: Mode must be 'mirror', 'repeat', 'black', or a custom color like [128, 128, 128].")
+            raise ValueError("vs_tiletools.tpad: Mode must be 'mirror', 'repeat', 'loop', 'black', or a custom color like [128, 128, 128].")
         blank = core.std.BlankClip(clip=clip, length=n, color=color, keep=True)
         last1 = core.std.Trim(clip, first=clip.num_frames - 1, length=1)
         return core.std.CopyFrameProps(blank, last1, props=color_props) # props could be needed for format convertions
 
     def _start_pad(clip, n):
-        # mirror frames
+        # mirror clip
         if pad_mode == "mirror":
             if clip.num_frames == 1:
                 return core.std.Loop(clip, times=n)
@@ -923,7 +930,15 @@ def tpad(clip, start=0, end=0, length=None, mode="mirror"):
             repeats  = (n + pingpong.num_frames - 1) // max(1, pingpong.num_frames)
             trimmed  = (pingpong * repeats)[:n]
             return core.std.Reverse(trimmed)
-            
+        
+        # loop clip
+        if pad_mode == "loop":
+            if clip.num_frames == 1:
+                return core.std.Loop(clip, times=n)
+            repeats = (n + clip.num_frames - 1) // max(1, clip.num_frames)
+            looped  = clip * repeats
+            return core.std.Trim(looped, first=looped.num_frames - n, length=n)
+        
         # repeat first frame
         if pad_mode == "repeat":
             first = core.std.Trim(clip, first=0, length=1)
@@ -932,7 +947,7 @@ def tpad(clip, start=0, end=0, length=None, mode="mirror"):
         # solid color
         color = _normalize_color(pad_mode, clip.format, "tpad")
         if color is False:
-            raise ValueError("vs_tiletools.tpad: Mode must be 'mirror', 'repeat', 'black', or a custom color like [128, 128, 128].")
+            raise ValueError("vs_tiletools.tpad: Mode must be 'mirror', 'repeat', 'loop', 'black', or a custom color like [128, 128, 128].")
         blank = core.std.BlankClip(clip=clip, length=n, color=color, keep=True)
         first1 = core.std.Trim(clip, first=0, length=1)
         return core.std.CopyFrameProps(blank, first1, props=color_props) # props could be needed for format convertions
@@ -1307,7 +1322,7 @@ def skipdups(clip, prop_src=None, debug=False):
         raise ValueError("vs_tiletools.skipdups: Frame count changed between markdups and skipdups. This is not supported.")
 
     if debug:
-        clip = core.akarin.Text(clip, "\nChosen and displayed frame: {N}", alignment=9, scale=2)  # print current frame, will stand still after select if skipped
+        clip = core.akarin.Text(clip, "\n\nChosen replacement frame: {N}", alignment=9, scale=2)  # print current frame, will stand still after select if skipped
     
     choices = _backshift(clip, max_back)                                                # choices are clip shifted back by 0..max_back
     expr = f"x.{markprop} {max_back} < x.{markprop} N {max_back} % x.{markprop} min ?"  # if markprop < max_back: skip as much as possible. else (long run) throttle shift so it doesn't slide forever.
@@ -1318,6 +1333,6 @@ def skipdups(clip, prop_src=None, debug=False):
         f = f"x.{diffprop} 10 * round dup 100 / trunc 100 * - trunc"
         prop_src = core.akarin.PropExpr(prop_src, lambda: dict(i=i, f=f))  # round prop to 2 decimal places
         out = core.std.CopyFrameProps(out, prop_src, props=["i", "f"])     # prop from out clip stands still due to skipping, so copy non skipped one from prop_src
-        out = core.akarin.Text(out, "Difference to previous frame: {i:d}.{f:02d}", alignment=9, scale=2)
+        out = core.akarin.Text(out, "Difference to previous frame: {i:d}.{f:02d}\nCurrent frame: {N}", alignment=9, scale=2)
     
     return core.std.RemoveFrameProps(out, props=[markprop, idprop, diffprop])
