@@ -1135,7 +1135,7 @@ def window(clip, length=20, overlap=5, padding="mirror"):
                 padded_window = core.std.CopyFrameProps(padded_window, window_clip)  # copy previous tpad props in case tpad was used already
 
             else:
-                raise ValueError("vs_tiletools.window: Padding must be 'mirror', 'repeat', 'black', or a custom color like [128, 128, 128].")
+                raise ValueError("vs_tiletools.window: Padding must be 'mirror', 'repeat', 'loop', 'black', or a custom color like [128, 128, 128].")
         
         else:
             padded_window = window_clip
@@ -1242,13 +1242,13 @@ def unwindow(clip, fade=False, full_length=None, window_length=None, overlap=Non
 
 
 def markdups(clip, thresh=0.3):
-    """Marks up to 5 consecutive frames as duplicates, which can later be skipped using skipdups().
+    """Marks up to 5 consecutive frames as duplicates if they are near identical, which can later be skipped using skipdups(). 
 
     Args:
-        clip: Clip to mark. Any format.
+        clip: Clip were duplicates should be marked. Any format.
         thresh: Similarity threshold. If the difference between two consecutive frames is lower than this value, the
             frame is marked as a duplicate. If the value is 0, only 100% identical frames will be marked as duplicate.
-            Keep it a little above 0 due to noise and compression. The default worked nicely for me.
+            Keep it a little above 0 due to noise and compression. The default worked nicely for me on anime.
     """
     
     # checks
@@ -1285,14 +1285,20 @@ def markdups(clip, thresh=0.3):
 
 
 def skipdups(clip, prop_src=None, debug=False):
-    """Skips processing of up to 5 consecutive duplicate frames marked by markdups(). The marked frames will copy the previous frame
-        instead of submitting the current one for processing. This speeds up heavy filters sandwiched inbetween markdups() and skipdups(). 
+    """Skips processing of up to 5 consecutive duplicate frames marked by markdups(). That means the marked frames will copy
+       one of the previous 5 frames instead of submitting the current frame for processing. This speeds up heavy filters
+       sandwiched inbetween markdups() and skipdups().
+       
+       Keep in mind that if you use a heavy spatial filter, followed by a temporal filter, both inside of the sandwich, the
+       speedup will be negated, because the temporal filter will request the marked frames anyway. For this reason, it is
+       recommended to use temporal filters outside the sandwich.
 
     Args:
-        clip: Marked clip to apply duplicate skipping to. Any format.
-        prop_src: Optional prop source clip. This should be the clip directly returned by markdups(). If None, it will be set
-            automatically, unless the frame props got lost since using markdups().
+        clip: Clip with marked duplicates. Any format.
+        prop_src: Optional prop source clip. This should be detected automatically. But if the frame props of the first clip
+            got lost, you can set it here manually. It should be the clip directly returned by markdups().
         debug: Overlays the frame number of the selected frame and the difference value to the previous frame onto the output.
+            This is useful to finetune the sensitivity threshold in markdups().
     """
     
     # checks
