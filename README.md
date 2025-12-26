@@ -43,6 +43,8 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
   * [Autofill](#autofill) - Auto detects borders and fills them with various fill modes
   * [Croprandom](#croprandom) - Crops to given dimensions, but randomly repositions the window each frame
 * [Temporal Functions](#temporal-functions)
+  * [Markdups](#markdups) - Marks identical frames as duplicates, which can later be skipped using `skipdups()`
+  * [Skipdups](#skipdups) - Skips processing of duplicate frames marked by `markdups()`
   * [Window](#window) - Inserts temporal overlaps a the end of fixed length temporal windows
   * [Unwindow](#unwindow) - Auto removes or crossfades overlaps added by `window()`
   * [TPad](#tpad) - Temporally pads with various padding modes
@@ -55,6 +57,8 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
 * [fillborders](https://github.com/dubhater/vapoursynth-fillborders)
 * [cv_inpaint](https://github.com/dnjulek/VapourSynth-cv_inpaint) *(optional, adds pad modes: telea, ns, fsr)*
 * [autocrop](https://github.com/Irrational-Encoding-Wizardry/vapoursynth-autocrop) *(optional, only for autofill)*
+* [akarin](https://github.com/Jaded-Encoding-Thaumaturgy/akarin-vapoursynth-plugin) *(optional, only for markdups/skipdups)*
+* [vship](https://github.com/Line-fr/Vship) *(optional, only for markdups/skipdups)*
 
 ## Setup
 Put the `vs_tiletools.py` file into your vapoursynth scripts folder.  
@@ -101,8 +105,8 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
   __*`full_width`*, *`full_height`*, *`overlap`* (optional)__  
   You can also enter untile parameters manually. Needed is the full assembled frame dimensions and the overlap between tiles. In manual mode you have to account for resized or discarded tiles yourself.  
-  __Tip:__ If tiles were discarded, the full_width/full_height are now smaller and a multiple of the original tile size.  
-  __Tip:__ If tiles were resized 2x, simply double all values.
+  Tip: If tiles were discarded, the full_width/full_height are now smaller and a multiple of the original tile size.  
+  Tip: If tiles were resized 2x, simply double all values.
 
 <br />
 
@@ -221,7 +225,9 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 <br />
 
 * ### Skipdups
-  Skips processing of up to 5 consecutive duplicate frames marked by `markdups()`. That means the marked frames will copy one of the previous 5 frames instead of submitting the current frame for processing. This speeds up heavy filters sandwiched inbetween `markdups()` and `skipdups()`. Keep in mind that if you use a heavy spatial filter, followed by a temporal filter, both inside of the sandwich, the speedup will be negated, because the temporal filter will request the marked frames anyway. For this reason, it is recommended to use temporal filters outside the sandwich.
+  Skips processing of up to 5 consecutive duplicate frames marked by `markdups()`. That means the marked frames will copy one of the previous 5 frames instead of submitting the current frame for processing. This speeds up heavy filters sandwiched inbetween `markdups()` and `skipdups()`.
+
+  Keep in mind that if you use a heavy spatial filter, followed by a temporal filter, both inside of the sandwich, the speedup will be negated, because the temporal filter will request the marked frames anyway. For this reason, it is recommended to use temporal filters outside the sandwich.
   ```python
   import vs_tiletools
   clip = vs_tiletools.skipdups(clip) # automatic
@@ -277,8 +283,8 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
   __*`full_length`*, *`window_length`*, *`overlap`* (optional)__  
   You can also enter unwindow parameters manually. Needed is the full clip length, window length and the overlap between windows. In manual mode you have to account for a discarded window yourself.  
-  __Tip:__ If the last window was discarded, the full_length is now smaller and a multiple of window_length.  
-  __Tip:__ If the windowed clip was interpolated to 2x, simply double all values.
+  Tip: If the last window was discarded, the full_length is now smaller and a multiple of window_length.  
+  Tip: If the windowed clip was interpolated to 2x, simply double all values.
 
 <br />
 
