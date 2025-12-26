@@ -7,9 +7,11 @@ import random
 import vapoursynth as vs
 from numbers import Real
 
-core     = vs.core
-fb_modes = {"repeat", "mirror", "fillmargins", "fixborders"}
-cv_modes = {"telea", "ns", "fsr"}
+core        = vs.core
+fb_modes    = {"repeat", "mirror", "fillmargins", "fixborders"}
+cv_modes    = {"telea", "ns", "fsr"}
+markdup_reg = {}
+markdup_id  = 1
 
 def _clamp8(x):
     return max(0, min(255, x))
@@ -54,11 +56,19 @@ def _normalize_color(mode, clip_format, function_name):
     # return false if not a color
     return False
 
+def _backshift(c, n):
+    # generates a list of clips, each one shifted backwards
+    shifts = [c]
+    for cur in range(1, n + 1):
+        shifts.append(c.std.DuplicateFrames([0] * cur)[:-cur])
+    return shifts
+
 def _maskedmerge(clipa, clipb, mask):
+    # makes maskedmerge work on half float formats
     clipa_format = clipa.format
-    if clipa_format.sample_type == vs.FLOAT and clipa_format.bits_per_sample == 16:  # maskedmerge doesn't support float16, use expr instead
+    if clipa_format.sample_type == vs.FLOAT and clipa_format.bits_per_sample == 16:  # use expr for float16
         if clipa_format.num_planes > 1:
-            if mask.format.color_family == vs.GRAY and (clipa_format.subsampling_w or clipa_format.subsampling_h):
+            if mask.format.color_family == vs.GRAY and (clipa_format.subsampling_w or clipa_format.subsampling_h):  # support subsampling
                 w = clipa.width  >> clipa_format.subsampling_w
                 h = clipa.height >> clipa_format.subsampling_h
                 mask_sub = core.resize.Point(mask, width=w, height=h)
@@ -69,6 +79,7 @@ def _maskedmerge(clipa, clipb, mask):
     return core.std.MaskedMerge(clipa, clipb, mask, first_plane=True)
 
 def _fillborders(clip, left=0, right=0, top=0, bottom=0, mode="mirror", inwards=False):
+    # adds support for all formats to fillborders and fixes broken modes
     clip_format = clip.format
     
     # fillmargins is broken with lower than 12bit
@@ -411,7 +422,7 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
         clip = core.resize.Point(clip, format=clip_format_int.id)
 
     # compute fill amount
-    y, u, v    = map(int, color) # no color nomalization needed, cropvalues plugin takes 8bit directly and scales
+    y, u, v    = map(int, color)  # no color nomalization needed, cropvalues plugin takes 8bit directly and scales
     color_low  = [_clamp8(y - tol_y), _clamp8(u - tol_u), _clamp8(v - tol_v)]
     color_high = [_clamp8(y + tol_y), _clamp8(u + tol_u), _clamp8(v + tol_v)]
     clip       = core.acrop.CropValues(clip, top=top, bottom=bottom, left=left, right=right, color=color_low, color_second=color_high)
@@ -459,7 +470,7 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
 
 
 def croprandom(clip, width=256, height=256, seed=0):
-    """Randomly crops a different region each frame with a deterministic seed.
+    """Crops to the given dimensions, but randomly repositions the crop window each frame.
 
     Args:
         clip: Source clip. Any format.
@@ -501,6 +512,7 @@ def croprandom(clip, width=256, height=256, seed=0):
 
 def tile(clip, width=256, height=256, overlap=16, padding="mirror"):
     """Splits a clip into tiles of fixed dimensions to reduce resource requirements. Outputs a clip with all tiles in order.
+        All filters applied to the tiled clip should be spatial only.
 
     Args:
         clip: Clip to tile. Any format.
@@ -1150,6 +1162,8 @@ def unwindow(clip, fade=False, full_length=None, window_length=None, overlap=Non
             Tip: If the last window was discarded, the full_length is now smaller and a multiple of window_length.  
             Tip: If the windowed clip was interpolated to 2x, simply double all values.
     """
+    
+    # checks
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.unwindow: Clip must be a vapoursynth clip.")
     if clip.format.id == vs.PresetVideoFormat.NONE or clip.width == 0 or clip.height == 0:
@@ -1210,3 +1224,100 @@ def unwindow(clip, fade=False, full_length=None, window_length=None, overlap=Non
     final_length = min(original_length, reassembled.num_frames)
     out = reassembled[:final_length]
     return core.std.RemoveFrameProps(out, props=[prop_key])
+
+
+def markdups(clip, thresh=0.3):
+    """Marks up to 5 consecutive frames as duplicates, which can later be skipped using skipdups().
+
+    Args:
+        clip: Clip to mark. Any format.
+        thresh: Similarity threshold. If the difference between two consecutive frames is lower than this value, the
+            frame is marked as a duplicate. If the value is 0, only 100% identical frames will be marked as duplicate.
+            Keep it a little above 0 due to noise and compression. The default worked nicely for me.
+    """
+    
+    # checks
+    if not isinstance(clip, vs.VideoNode):
+        raise TypeError("vs_tiletools.markdups: Clip must be a vapoursynth clip.")
+    if clip.format.id == vs.PresetVideoFormat.NONE or clip.width == 0 or clip.height == 0:
+        raise TypeError("vs_tiletools.markdups: Clip must have constant format and dimensions.")
+    thresh = float(thresh)
+    if thresh < 0.0:
+        raise ValueError("vs_tiletools.markdups: Threshold can not be negative.")
+
+    global markdup_id
+    thresh   = thresh * 10  # make input tresh values a little smaller
+    max_back = 5
+    markprop = "tiletools_markprops"
+    idprop   = "tiletools_propsrcid"
+    diffprop = "_BUTTERAUGLI_INFNorm"
+    
+    measure = core.resize.Bicubic(clip, width=720, height=480) if (clip.width > 720 or clip.height > 480) else clip  # resize to lower res for faster diffs
+    measure = core.vship.BUTTERAUGLI(_backshift(measure, 1)[1], measure, intensity_multiplier=203)  # diff between current frame and previous, vship autoconverts format now
+    clip    = core.std.CopyFrameProps(clip, measure, diffprop)           # copy just the needed prop to the original clip
+    shifts  = _backshift(clip, max_back - 1)                             # [diff(n), diff(n-1), ..., diff(n-4)]
+
+    expr = "0"
+    for i in reversed(range(max_back)):
+        expr = f"N {i} > src{i}.{diffprop} {thresh} < * 1 {expr} + 0 ?"  # always choose earliest dup under thresh within max_back
+
+    marked  = core.akarin.PropExpr(shifts, lambda: {markprop: expr})     # mark frames with expr
+    this_id = markdup_id
+    markdup_id += 1                                                      # increment id for prop clip
+    marked  = core.std.SetFrameProp(marked, prop=idprop, intval=this_id) # set id prop so skipdups can find the prop_src clip from the registry
+    markdup_reg[this_id] = marked                                        # add to registry for auto detection in skipdups
+    return marked
+
+
+def skipdups(clip, prop_src=None, debug=False):
+    """Skips processing of up to 5 consecutive duplicate frames marked by markdups(). The marked frames will copy the previous frame
+        instead of submitting the current one for processing. This speeds up heavy filters sandwiched inbetween markdups() and skipdups(). 
+
+    Args:
+        clip: Marked clip to apply duplicate skipping to. Any format.
+        prop_src: Optional prop source clip. This should be the clip directly returned by markdups(). If None, it will be set
+            automatically, unless the frame props got lost since using markdups().
+        debug: Overlays the frame number of the selected frame and the difference value to the previous frame onto the output.
+    """
+    
+    # checks
+    if not isinstance(clip, vs.VideoNode):
+        raise TypeError("vs_tiletools.skipdups: Clip must be a vapoursynth clip.")
+    if clip.format.id == vs.PresetVideoFormat.NONE or clip.width == 0 or clip.height == 0:
+        raise TypeError("vs_tiletools.skipdups: Clip must have constant format and dimensions.")
+
+    max_back = 5
+    markprop = "tiletools_markprops"
+    idprop   = "tiletools_propsrcid"
+    diffprop = "_BUTTERAUGLI_INFNorm"
+
+    if prop_src is None:
+        # get id for prop source clip from first frame
+        f0 = clip.get_frame(0)
+        if idprop not in f0.props:
+            raise KeyError("vs_tiletools.skipdups: Clip is missing required props. Did you pass the right clip? Were frame props deleted? Make sure to use markdups first.")
+        this_id  = int(f0.props[idprop])
+        prop_src = markdup_reg.get(this_id)
+
+    if not isinstance(prop_src, vs.VideoNode):
+        raise TypeError("vs_tiletools.skipdups: Prop source must be a vapoursynth clip.")
+    if prop_src.format.id == vs.PresetVideoFormat.NONE or prop_src.width == 0 or prop_src.height == 0:
+        raise TypeError("vs_tiletools.skipdups: Prop source must have constant format and dimensions.")
+    if clip.num_frames != prop_src.num_frames:
+        raise ValueError("vs_tiletools.skipdups: Frame count changed between markdups and skipdups. This is not supported.")
+
+    if debug:
+        clip = core.akarin.Text(clip, "\nChosen and displayed frame: {N}", alignment=9, scale=2)  # print current frame, will stand still after select if skipped
+    
+    choices = _backshift(clip, max_back)                                                # choices are clip shifted back by 0..max_back
+    expr = f"x.{markprop} {max_back} < x.{markprop} N {max_back} % x.{markprop} min ?"  # if markprop < max_back: skip as much as possible. else (long run) throttle shift so it doesn't slide forever.
+    out  = core.akarin.Select(choices, [prop_src], [expr])                              # each frame selects the clip with an earlier frame if possible
+    
+    if debug:
+        i = f"x.{diffprop} 10 * round 100 / trunc"
+        f = f"x.{diffprop} 10 * round dup 100 / trunc 100 * - trunc"
+        prop_src = core.akarin.PropExpr(prop_src, lambda: dict(i=i, f=f))  # round prop to 2 decimal places
+        out = core.std.CopyFrameProps(out, prop_src, props=["i", "f"])     # prop from out clip stands still due to skipping, so copy non skipped one from prop_src
+        out = core.akarin.Text(out, "Difference to previous frame: {i:d}.{f:02d}", alignment=9, scale=2)
+    
+    return core.std.RemoveFrameProps(out, props=[markprop, idprop, diffprop])
