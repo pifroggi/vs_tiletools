@@ -33,7 +33,6 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
 ## Table of Contents
 * [Requirements](#requirements)
 * [Setup](#setup)
-* [Padding Modes](#padding-modes)
 * [Spatial Functions](#spatial-functions)
   * [Tile](#tile) - Splits each frame into tiles of fixed dimensions
   * [Untile](#untile) - Auto reassembles tiles from `tile()`, even if resized
@@ -50,6 +49,8 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
   * [TPad](#tpad) - Temporally pads with various padding modes
   * [Trim](#trim) - Auto trims temporally padded clip from `tpad()`
   * [Crossfade](#crossfade) - Crossfades between two clips
+* [Example Usage](#example-usage)
+* [Padding Modes](#padding-modes)
 
 <br />
 
@@ -86,7 +87,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   __*`padding`*__  
   How to handle tiles that are smaller than tile size. These can be padded with modes `mirror`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, or just discarded with `discard`.
 
-<br />
+---
 
 * ### Untile
   Automatically reassembles a clip tiled with `tile()`, even if tiles were since resized.
@@ -108,7 +109,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Tip: If tiles were discarded, the full_width/full_height are now smaller and a multiple of the original tile size.  
   Tip: If tiles were resized 2x, simply double all values.
 
-<br />
+---
 
 * ### Pad
   Pads a clip with various padding modes.
@@ -126,7 +127,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   __*`mode`*__  
   Padding mode can be `mirror`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
 
-<br />
+---
 
 * ### Crop
   Automatically crops padding added by `pad()` or `mod()`, even if the clip was since resized.
@@ -142,7 +143,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   __*`left`*, *`right`*, *`top`*, *`bottom`* (optional)__  
   Optionally you can also enter crop values manually.
 
-<br />
+---
 
 * ### Mod
   Pads or crops a clip so width and height are multiples of the given modulus.
@@ -160,7 +161,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   __*`mode`*__  
   Mode to reach the next upper multiple via padding can be `mirror`, `repeat`, `fillmargins`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, or `discard` to crop to the next lower multiple.
 
-<br />
+---
 
 * ### Croprandom
   Crops to the given dimensions, but randomly repositions the crop window each frame.
@@ -178,7 +179,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   __*`seed`*__  
   Seed used for deterministic crop randomization.
 
-<br />
+---
 
 * ### Autofill
   Detects uniform colored borders (like letterboxes/pillarboxes) and fills them with various filling modes.
@@ -206,6 +207,8 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   __*`fill`*__  
   Filling mode can be `mirror`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
 
+---
+
 <br />
 
 ## Temporal Functions
@@ -222,7 +225,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   __*`thresh`*__  
   Similarity threshold. If the difference between two consecutive frames is lower than this value, the frame is marked as a duplicate. If the value is 0, only 100% identical frames will be marked as duplicate. Keep it a little above 0 due to noise and compression. The default worked nicely for me on anime.
 
-<br />
+---
 
 * ### Skipdups
   Skips processing of up to 5 consecutive duplicate frames marked by `markdups()`. That means the marked frames will copy one of the previous 5 frames instead of submitting the current frame for processing. This speeds up heavy filters sandwiched inbetween `markdups()` and `skipdups()`.
@@ -230,7 +233,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Keep in mind that if you use a heavy spatial filter, followed by a temporal filter, both inside of the sandwich, the speedup will be negated, because the temporal filter will request the marked frames anyway. For this reason, it is recommended to use temporal filters outside the sandwich.
   ```python
   import vs_tiletools
-  clip = vs_tiletools.skipdups(clip) # automatic
+  clip = vs_tiletools.skipdups(clip, debug=False) # automatic
   clip = vs_tiletools.skipdups(clip, prop_src=None, debug=False) # manual
   ```
 
@@ -240,10 +243,10 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   __*`prop_src`* (optional)__  
   Frame properties source clip. This should be detected automatically. But if the frame props of the first clip got lost, you can set it here manually. It should be the clip directly returned by `markdups()`. 
 
-  __*`debug`* (optional)__  
+  __*`debug`*__  
   Overlays the frame number of the selected frame and the difference value to the previous frame onto the output. This is useful to finetune the sensitivity threshold in `markdups()`.
 
-<br />
+---
 
 * ### Window
   Inserts temporal overlaps at the end of each temporal window into the clip. That means a window with `length=20` and `overlap=5` will produce a clip with this frame pattern: `0–19`, `15–34`, `30–49`, and so on. In combination with the unwindow function, the overlap can then be used to crossfade between windows and eliminate sudden jumps/hitches that can occur on window based functions like [vs_undistort](https://github.com/pifroggi/vs_undistort).
@@ -264,7 +267,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   __*`padding`*__  
   How to handle the last window of the clip if it is smaller than length. It can be padded with modes `mirror`, `repeat`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, discarded with `discard`, or left as is with `None`.
   
-<br />
+---
 
 * ### Unwindow
   Automatically removes the overlap added by `window()` and optionally uses it to crossfade between windows.
@@ -286,7 +289,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Tip: If the last window was discarded, the full_length is now smaller and a multiple of window_length.  
   Tip: If the windowed clip was interpolated to 2x, simply double all values.
 
-<br />
+---
 
 * ### TPad
   Temporally pads (extends) a clip using various padding modes.
@@ -307,7 +310,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   __*`mode`*__  
   Padding mode can be `mirror`, `repeat`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
 
-<br />
+---
 
 * ### Trim
   Automatically trims temporal padding added by `tpad()`.
@@ -326,7 +329,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   __*`length`* (optional)__  
   Optional manual trim to exactly this many frames. Mutually exclusive with `start`/`end`.
 
-<br />
+---
 
 * ### Crossfade
   Crossfades between two clips.
@@ -341,6 +344,61 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   __*`length`*__  
   Length of the crossfade. For example `length=10` will fade the last 10 frames of clipa into the first 10 frames of clipb.
 
+---
+
+<br />
+
+## Example Usage
+Examples of how the functions are used together.
+
+* #### Reduce VRAM usage on heavy AI models via tiling.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.tile(clip, width=256, height=256, overlap=16) # splits frames into 256x256 tiles with an overlap of 16
+  clip = core.trt.Model(clip, engine_path="2x_heavy_model.engine")  # heavy AI upscale model
+  clip = vs_tiletools.untile(clip, fade=True)                       # reassembles the tiles and uses the overlap to feather
+  ```
+
+* #### Fix issues around borders with some filters via padding.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.pad(clip, left=8, right=8, top=8, bottom=8) # pad 8 pixels on all sides
+  clip = core.trt.Model(clip, engine_path="model.engine")         # AI model with issues near borders
+  clip = vs_tiletools.crop(clip)                                  # automatically crop the padding
+  ```
+
+* #### Fix filters that require the input to be divisible by a factor via padding.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.mod(clip, modulus=16)                      # pad to make width and height divisible by 16
+  clip = core.trt.Model(clip, engine_path="2x_DAT_model.engine") # DAT and HAT based AI models have this constraint
+  clip = vs_tiletools.crop(clip)                                 # automatically crop the padding
+  ```
+
+* #### Skip heavy filters on duplicate frames. Most useful for anime.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.markdups(clip, thresh=0.3)                   # marks duplicate frames with a low threshhold
+  clip = core.trt.Model(clip, engine_path="2x_heavy_model.engine") # heavy AI upscale model
+  clip = vs_tiletools.skipdups(clip)                               # skips duplicates and replaces them with a previous frame
+  ```
+
+* #### Fix jumps/hitches on temporal window/chunk based filters via crossfading.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.window(clip, length=10, overlap=4) # creates a temporal overlap of 4 frames
+  clip = vs_undistort.tensorrt(clip, temp_window=10)     # filter has 10 input frames and 10 output frames
+  clip = vs_tiletools.unwindow(clip, fade=True)          # uses the overlap to fade between temporal windows
+  ```
+
+* #### Filters with multiple input clips often require both to have the same length.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.tpad(clip, length=clip2.num_frames) # pad clip to the length of clip2
+  clip = some.multi_input_filter(clip, clip2)             # filter with multiple inputs
+  clip = vs_tiletools.trim(clip, fade=True)               # automatically trims the added frames
+  ```
+
 <br />
 
 ## Padding Modes
@@ -349,8 +407,8 @@ Full explanation for all padding modes.
 * __Spatial__
   * `mirror` Reflects the image into the padded region.
   * `repeat` Repeats the outermost pixel row/column.
-  * `fillmargins` Similar to repeat, but the top/bottom padding get more blurry the further away it is.
-  * `telea` Telea's algorithm. Similar to fillmargins, but all padding get more blurry the further away it is.
+  * `fillmargins` Similar to repeat, but the top/bottom padding gets more blurry the further away it is.
+  * `telea` Telea's algorithm. Similar to fillmargins, but all padding gets more blurry the further away it is.
   * `ns` Navier-Stokes algorithm. Similar to telea, but less blurry.
   * `fsr` Frequency Selective Reconstructiom algorithm. Better at keeping patterns/textures, but is slow.
   * `black` Solid black padding.
@@ -365,4 +423,7 @@ Full explanation for all padding modes.
 <br />
 
 > [!NOTE]
-> Padding mode "fixborders" is additionally supported in all functions, if the [fillborders](https://github.com/dubhater/vapoursynth-fillborders) plugin is compiled from source. See [this](https://github.com/dubhater/vapoursynth-fillborders/issues/7) issue.
+> The padded regions may be generated at a lower bit depth due to plugin limitations (16-bit for fillborders, 8-bit for cv_inpaint), then upsampled and combined with the original high depth frame. This should usually not be an issue. Modes `fillmargins` and `fixborders`, which are partially broken when using the fillborders plugin directly, are also fixed here. Padding mode `fixborders` is additionally supported in all functions, if the [fillborders](https://github.com/dubhater/vapoursynth-fillborders) plugin is compiled from source. See [this](https://github.com/dubhater/vapoursynth-fillborders/issues/7) issue.
+
+
+
