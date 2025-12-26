@@ -1093,7 +1093,7 @@ def window(clip, length=20, overlap=5, padding="mirror"):
         overlap: Overlap from one window to the next. When overlap is increased, the temporal window length is not
             altered, so the total amount of windows per clip increases.
         padding: How to handle the last window of the clip if it is smaller than length. It can be padded with modes "mirror",
-            "repeat", "black", a custom color in 8-bit scale [128, 128, 128], discarded with "discard", or left as is with "None".
+            "repeat", "loop", "black", a custom color in 8-bit scale [128, 128, 128], discarded with "discard", or left as is with "None".
     """
     
     # checks
@@ -1130,7 +1130,7 @@ def window(clip, length=20, overlap=5, padding="mirror"):
                 padded_window = window_clip  
 
             # pad with tpad
-            elif (isinstance(pad_mode, str) and pad_mode in {"mirror", "repeat", "black"}) or isinstance(pad_mode, (Real, list, tuple)):
+            elif (isinstance(pad_mode, str) and pad_mode in {"mirror", "repeat", "loop", "black"}) or isinstance(pad_mode, (Real, list, tuple)):
                 padded_window = tpad(window_clip, length=length, mode=pad_mode)
                 padded_window = core.std.CopyFrameProps(padded_window, window_clip)  # copy previous tpad props in case tpad was used already
 
