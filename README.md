@@ -406,7 +406,7 @@ Full explanation for all padding modes.
 
 * __Spatial__
   * `mirror` Reflects the image into the padded region.
-  * `wrap` Wraps the image around like a periodic tiling.
+  * `wrap` Wraps the image around to create a periodic tiling.
   * `repeat` Repeats the outermost pixel row/column.
   * `fillmargins` Similar to repeat, but the top/bottom padding gets more blurry the further away it is.
   * `telea` Telea's algorithm. Similar to fillmargins, but all padding gets more blurry the further away it is.
