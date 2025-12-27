@@ -79,6 +79,36 @@ def _maskedmerge(clipa, clipb, mask):
     return core.std.MaskedMerge(clipa, clipb, mask, first_plane=True)
 
 def _fillborders(clip, left=0, right=0, top=0, bottom=0, mode="mirror", inwards=False):
+    # uses fillborders for padding
+    width  = clip.width
+    height = clip.height
+    
+    # original fillborders behaviour
+    if inwards:
+        return core.fb.FillBorders(clip, left=left, right=right, top=top, bottom=bottom, mode=mode)
+
+    # fillborders plugin doesn't support larger padding for mirror
+    if mode != "mirror" or (left <= width  and right <= width  and top <= height and bottom <= height):
+        clip = core.std.AddBorders(clip, left=left, right=right, top=top, bottom=bottom)
+        return core.fb.FillBorders(clip, left=left, right=right, top=top, bottom=bottom, mode=mode)
+    
+    # for mirror mode if requested padding is too large, do pingpong steps
+    while left or right or top or bottom:
+        step_l = min(left,   width)
+        step_r = min(right,  width)
+        step_t = min(top,    height)
+        step_b = min(bottom, height)
+        clip = core.std.AddBorders(clip, left=step_l, right=step_r, top=step_t, bottom=step_b)
+        clip = core.fb.FillBorders(clip, left=step_l, right=step_r, top=step_t, bottom=step_b, mode=mode)
+        left   -= step_l
+        right  -= step_r
+        top    -= step_t
+        bottom -= step_b
+        width  *= 2
+        height *= 2
+    return clip
+
+def _fillborders_padder(clip, left=0, right=0, top=0, bottom=0, mode="mirror", inwards=False):
     # adds support for all formats to fillborders and fixes broken modes
     clip_format = clip.format
     
@@ -87,13 +117,9 @@ def _fillborders(clip, left=0, right=0, top=0, bottom=0, mode="mirror", inwards=
     # fixborders is broken in RGB or when not 16bit 
     broken_fixborders  = mode == "fixborders"  and ((clip_format.sample_type == vs.INTEGER and clip_format.bits_per_sample != 16) or clip_format.color_family == vs.RGB)
     
-    # pad clip
-    if not inwards:
-        clip = core.std.AddBorders(clip, left=left, right=right, top=top, bottom=bottom)
-    
     # if already integer or not broken mode use directly
     if clip_format.sample_type == vs.INTEGER and not (broken_fillmargins or broken_fixborders):
-        return core.fb.FillBorders(clip, left=left, right=right, top=top, bottom=bottom, mode=mode)
+        return _fillborders(clip, left=left, right=right, top=top, bottom=bottom, mode=mode, inwards=inwards)
     
     # if fixborders and RGB, convert to YUV
     if mode == "fixborders" and clip_format.color_family == vs.RGB:
@@ -103,22 +129,24 @@ def _fillborders(clip, left=0, right=0, top=0, bottom=0, mode="mirror", inwards=
         family = clip_format.color_family
         matrix = {}
     
-    # convert to 16bit, fillboders, convert back
+    # convert to 16bit, fillborders pad, convert back
     clip_format_int = core.query_video_format(family, vs.INTEGER, 16, clip_format.subsampling_w, clip_format.subsampling_h)
     clip_fill = core.resize.Point(clip, format=clip_format_int.id, **matrix)
-    clip_fill = core.fb.FillBorders(clip_fill, left=left, right=right, top=top, bottom=bottom, mode=mode)
+    clip_fill = _fillborders(clip_fill, left=left, right=right, top=top, bottom=bottom, mode=mode, inwards=inwards)
     clip_fill = core.resize.Point(clip_fill, format=clip_format.id)
-    if clip_format.sample_type == vs.INTEGER:  # if original was integer, masking to protect inner float values is not needed
+    if clip_format.sample_type == vs.INTEGER:  # original was integer, masking to protect inner float values is not needed
         return clip_fill
     
     # keep original float values inside, use filled border outside
+    if not inwards:
+        clip = core.std.AddBorders(clip, left=left, right=right, top=top, bottom=bottom)
     mask_format = core.query_video_format(vs.GRAY, clip_format.sample_type, clip_format.bits_per_sample, 0, 0)
     mask = core.std.BlankClip(clip, format=mask_format, width=clip.width - left - right, height=clip.height - top - bottom, color=0, keep=True)
     whit = 1.0 if mask_format.sample_type == vs.FLOAT else (1 << mask_format.bits_per_sample) - 1
     mask = core.std.AddBorders(mask, left=left, right=right, top=top, bottom=bottom, color=whit)
     return _maskedmerge(clip, clip_fill, mask)
-    
-def _cv_outpaint(clip, left=0, right=0, top=0, bottom=0, mode="telea", inwards=False):
+
+def _cv_outpaint_padder(clip, left=0, right=0, top=0, bottom=0, mode="telea", inwards=False):
     clip_format = clip.format
     
     # select outpaint mode
@@ -215,11 +243,11 @@ def pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
 
     # fillborder modes
     elif isinstance(mode, str) and mode in fb_modes:
-        out = _fillborders(clip, left=left, right=right, top=top, bottom=bottom, mode=mode)
+        out = _fillborders_padder(clip, left=left, right=right, top=top, bottom=bottom, mode=mode)
 
     # outpaint modes
     elif isinstance(mode, str) and mode in cv_modes:
-        out = _cv_outpaint(clip, left=left, right=right, top=top, bottom=bottom, mode=mode)
+        out = _cv_outpaint_padder(clip, left=left, right=right, top=top, bottom=bottom, mode=mode)
 
     # wrap padding
     elif isinstance(mode, str) and mode == "wrap":
@@ -472,9 +500,9 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
         if (t | b | l | r) == 0:
             return clip
         elif fb:
-            return _fillborders(clip, left=l, right=r, top=t, bottom=b, mode=fill, inwards=True)
+            return _fillborders_padder(clip, left=l, right=r, top=t, bottom=b, mode=fill, inwards=True)
         elif cv:
-            return _cv_outpaint(clip, left=l, right=r, top=t, bottom=b, mode=fill, inwards=True)
+            return _cv_outpaint_padder(clip, left=l, right=r, top=t, bottom=b, mode=fill, inwards=True)
         else:
             cropped = core.std.Crop(clip, left=l, right=r, top=t, bottom=b)
             return core.std.AddBorders(cropped, left=l, right=r, top=t, bottom=b, color=fill_color)
