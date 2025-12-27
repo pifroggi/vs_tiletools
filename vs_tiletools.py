@@ -1317,7 +1317,7 @@ def markdups(clip, thresh=0.3):
     diffprop = "_BUTTERAUGLI_INFNorm"
     
     measure = core.resize.Bicubic(clip, width=720, height=480) if (clip.width > 720 or clip.height > 480) else clip  # resize to lower res for faster diffs
-    measure = core.vship.BUTTERAUGLI(_backshift(measure, 1)[1], measure, intensity_multiplier=203)  # diff between current frame and previous, vship autoconverts format now
+    measure = core.vship.BUTTERAUGLI(_backshift(measure, 1)[1], measure, numStream=4, intensity_multiplier=203)      # diff between current frame and previous, vship autoconverts format now
     clip    = core.std.CopyFrameProps(clip, measure, diffprop)           # copy just the needed prop to the original clip
     shifts  = _backshift(clip, max_back - 1)                             # [diff(n), diff(n-1), ..., diff(n-4)]
 
