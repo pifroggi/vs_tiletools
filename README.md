@@ -85,7 +85,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Overlap from one tile to the next. When overlap is increased the tile size is not altered, so the amount of tiles per frame increases. Can be a single value or a pair for horizontal and vertical `[16, 32]`.
 
   __*`padding`*__  
-  How to handle tiles that are smaller than tile size. These can be padded with modes `mirror`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, or just discarded with `discard`.
+  How to handle tiles that are smaller than tile size. These can be padded with modes `mirror`, `wrap`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, or just discarded with `discard`.
 
 ---
 
@@ -125,7 +125,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Padding amount in pixel.
   
   __*`mode`*__  
-  Padding mode can be `mirror`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
+  Padding mode can be `mirror`, `wrap`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
 
 ---
 
@@ -159,7 +159,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Dimensions will be a multiple of this value. Can be a single value, or a pair for width and height `[64, 32]`.
   
   __*`mode`*__  
-  Mode to reach the next upper multiple via padding can be `mirror`, `repeat`, `fillmargins`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, or `discard` to crop to the next lower multiple.
+  Mode to reach the next upper multiple via padding can be `mirror`, `wrap`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, or `discard` to crop to the next lower multiple.
 
 ---
 
@@ -265,7 +265,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Overlap from one window to the next. When overlap is increased, the temporal window length is not altered, so the total amount of windows per clip increases.
 
   __*`padding`*__  
-  How to handle the last window of the clip if it is smaller than length. It can be padded with modes `mirror`, `repeat`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, discarded with `discard`, or left as is with `None`.
+  How to handle the last window of the clip if it is smaller than length. It can be padded with modes `mirror`, `loop`, `repeat`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, discarded with `discard`, or left as is with `None`.
   
 ---
 
@@ -308,7 +308,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Pads clip to exactly this many frames. Mutually exclusive with `start`/`end`. 
 
   __*`mode`*__  
-  Padding mode can be `mirror`, `repeat`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
+  Padding mode can be `mirror`, `loop`, `repeat`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
 
 ---
 
@@ -406,6 +406,7 @@ Full explanation for all padding modes.
 
 * __Spatial__
   * `mirror` Reflects the image into the padded region.
+  * `wrap` Wraps the image around like a periodic tiling.
   * `repeat` Repeats the outermost pixel row/column.
   * `fillmargins` Similar to repeat, but the top/bottom padding gets more blurry the further away it is.
   * `telea` Telea's algorithm. Similar to fillmargins, but all padding gets more blurry the further away it is.
@@ -416,6 +417,7 @@ Full explanation for all padding modes.
 
 * __Temporal__
   * `mirror` Reverses the clip at the start/end.
+  * `loop` Loops the clip over.
   * `repeat` Repeats the first/last frame.
   * `black` Appends solid black frames.
   * `[128, 128, 128]` Appends frames in a solid custom color. 8-bit values per plane in the clip’s color family.
