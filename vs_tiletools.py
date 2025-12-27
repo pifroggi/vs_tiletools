@@ -799,7 +799,10 @@ def untile(clip, fade=False, full_width=None, full_height=None, overlap=None):
         raise ValueError(f"vs_tiletools.untile: This would assemble {num_tiles} tiles per frame (max {max_tiles}). Reduce overlap or increase tile size.")
     if num_frames and num_frames % num_tiles != 0:
         raise ValueError(f"vs_tiletools.untile: Clip length ({num_frames} frames) is not divisible by the tiles per frame ({num_tiles} tiles). Was the clip trimmed after tiling?")
-    parts = [core.std.SelectEvery(clip, cycle=num_tiles, offsets=i, modify_duration=False) for i in range(num_tiles)]
+    if num_tiles == 1:
+        parts = [clip]
+    else:
+        parts = [core.std.SelectEvery(clip, cycle=num_tiles, offsets=i, modify_duration=False) for i in range(num_tiles)]
 
     def _crop_tiles(clip, col, row):
         # split and crop overlap
