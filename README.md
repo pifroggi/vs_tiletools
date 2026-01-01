@@ -1,22 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # Tiling and Padding functions for VapourSynth
 A collection of spatial and temporal tiling and padding utilities for VapourSynth. The original idea was just a tiling function to make AI filters less VRAM-hungry and to provide additional options that built-in solutions might not. Over time, more related functions were added.
 
@@ -90,7 +72,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 ---
 
 * ### Untile
-  Automatically reassembles a clip tiled with `tile()`, even if tiles were since resized.
+  Automatically reassembles a clip tiled with `tile()`, even if tiles were since resized. [Example](#reduce-vram-usage-on-heavy-ai-models-via-tiling)
   ```python
   import vs_tiletools
   clip = vs_tiletools.untile(clip, fade=False) # automatic
@@ -130,7 +112,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 ---
 
 * ### Crop
-  Automatically crops padding added by `pad()` or `mod()`, even if the clip was since resized.
+  Automatically crops padding added by `pad()` or `mod()`, even if the clip was since resized. [Example1](#fix-issues-around-borders-with-some-filters-via-padding) [Example2](#fix-filters-that-require-the-input-to-be-divisible-by-a-factor-via-padding)
   ```python
   import vs_tiletools
   clip = vs_tiletools.crop(clip) # automatic
@@ -213,7 +195,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
 ## Temporal Functions
 * ### Markdups
-  Marks up to 5 consecutive frames as duplicates if they are near identical, which can later be skipped using `skipdups()`.
+  Marks up to 5 consecutive frames as duplicates if they are near identical, which can later be skipped using `skipdups()`. [Example](#skip-heavy-filters-on-duplicate-frames-most-useful-for-anime)
   ```python
   import vs_tiletools
   clip = vs_tiletools.markdups(clip, thresh=0.3)
@@ -228,7 +210,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 ---
 
 * ### Skipdups
-  Skips processing of up to 5 consecutive duplicate frames marked by `markdups()`. That means the marked frames will copy one of the previous 5 frames instead of submitting the current frame for processing. This speeds up heavy filters sandwiched inbetween `markdups()` and `skipdups()`.
+  Skips processing of up to 5 consecutive duplicate frames marked by `markdups()`. That means the marked frames will copy one of the previous 5 frames instead of submitting the current frame for processing. This speeds up heavy filters sandwiched inbetween `markdups()` and `skipdups()`. [Example](#skip-heavy-filters-on-duplicate-frames-most-useful-for-anime)
 
   Keep in mind that if you use a heavy spatial filter, followed by a temporal filter, both inside of the sandwich, the speedup will be negated, because the temporal filter will request the marked frames anyway. For this reason, it is recommended to use temporal filters outside the sandwich.
   ```python
@@ -249,7 +231,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 ---
 
 * ### Window
-  Inserts temporal overlaps at the end of each temporal window into the clip. That means a window with `length=20` and `overlap=5` will produce a clip with this frame pattern: `0–19`, `15–34`, `30–49`, and so on. In combination with the unwindow function, the overlap can then be used to crossfade between windows and eliminate sudden jumps/hitches that can occur on window based functions like [vs_undistort](https://github.com/pifroggi/vs_undistort).
+  Inserts temporal overlaps at the end of each temporal window into the clip. That means a window with `length=20` and `overlap=5` will produce a clip with this frame pattern: `0–19`, `15–34`, `30–49`, and so on. In combination with the unwindow function, the overlap can then be used to crossfade between windows and eliminate sudden jumps/hitches that can occur on window based functions like [vs_undistort](https://github.com/pifroggi/vs_undistort). [Example](#fix-jumpshitches-on-temporal-windowchunk-based-filters-via-crossfading)
   ```python
   import vs_tiletools
   clip = vs_tiletools.window(clip, length=20, overlap=5, padding="mirror")
@@ -270,7 +252,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 ---
 
 * ### Unwindow
-  Automatically removes the overlap added by `window()` and optionally uses it to crossfade between windows.
+  Automatically removes the overlap added by `window()` and optionally uses it to crossfade between windows. [Example](#fix-jumpshitches-on-temporal-windowchunk-based-filters-via-crossfading)
   ```python
   import vs_tiletools
   clip = vs_tiletools.unwindow(clip, fade=False) # automatic
@@ -313,7 +295,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 ---
 
 * ### Trim
-  Automatically trims temporal padding added by `tpad()`.
+  Automatically trims temporal padding added by `tpad()`. [Example](#filters-with-multiple-input-clips-often-require-both-to-have-the-same-length)
   ```python
   import vs_tiletools
   clip = vs_tiletools.trim(clip) # automatic
@@ -417,7 +399,7 @@ Full explanation for all padding modes.
 
 * __Temporal__
   * `mirror` Reverses the clip at the start/end.
-  * `loop` Loops the clip over.
+  * `loop` Loops the clip to start over.
   * `repeat` Repeats the first/last frame.
   * `black` Appends solid black frames.
   * `[128, 128, 128]` Appends frames in a solid custom color. 8-bit values per plane in the clip’s color family.
@@ -425,7 +407,6 @@ Full explanation for all padding modes.
 <br />
 
 > [!NOTE]
-> The padded regions may be generated at a lower bit depth due to plugin limitations (16-bit for fillborders, 8-bit for cv_inpaint), then upsampled and combined with the original high depth frame. This should usually not be an issue. Modes `fillmargins` and `fixborders`, which are partially broken when using the fillborders plugin directly, are also fixed here. Padding mode `fixborders` is additionally supported in all functions, if the [fillborders](https://github.com/dubhater/vapoursynth-fillborders) plugin is compiled from source. See [this](https://github.com/dubhater/vapoursynth-fillborders/issues/7) issue.
-
-
-
+> The padded regions may be generated at a lower bit depth due to plugin limitations (16-bit for fillborders, 8-bit for cv_inpaint), then upsampled and combined with the original high depth frame. This should usually not be an issue. Modes `fillmargins` and `fixborders`, which are partially broken when using the fillborders plugin directly, are also fixed here.
+>
+> Padding mode `fixborders` is additionally supported in all functions, if the [fillborders](https://github.com/dubhater/vapoursynth-fillborders) plugin is compiled from source. See [this](https://github.com/dubhater/vapoursynth-fillborders/issues/7) issue.
