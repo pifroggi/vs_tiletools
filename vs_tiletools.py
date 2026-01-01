@@ -1378,20 +1378,19 @@ def skipdups(clip, prop_src=None, debug=False):
 
     if debug:
         clip_format = clip.format
-        if clip_format.sample_type == vs.FLOAT and clip_format.bits_per_sample == 16:   # convert to fp32 if input is fp16 for text overlay
+        if clip_format.sample_type == vs.FLOAT and clip_format.bits_per_sample == 16:      # convert to fp32 if input is fp16 for text overlay
             clip = core.resize.Point(clip, format=clip.format.replace(bits_per_sample=32))
-        clip = core.akarin.Text(clip, "\n\nChosen replacement frame: {N}", alignment=9, scale=2)  # print current frame, will stand still after select if skipped
+        text = lambda n, c=clip: c.text.Text(f"\n\nChosen replacement frame: {n}", alignment=9, scale=2)
+        clip = core.std.FrameEval(clip, text)                                              # print current frame, will stand still after select if skipped
     
-    choices = _backshift(clip, max_back)                                                # choices are clip shifted back by 0-max_back
-    expr = f"x.{markprop} {max_back} < x.{markprop} N {max_back} % x.{markprop} min ?"  # if markprop < max_back: skip as much as possible, else (long run) throttle shift so it doesn't slide forever
-    out  = core.akarin.Select(choices, [prop_src], [expr])                              # each frame selects the clip with an earlier frame if possible
-    out  = core.std.CopyFrameProps(out, prop_src=clip)                                  # copy original correctly ordered frame props 
+    choices = _backshift(clip, max_back)                                                   # choices are clip shifted back by 0-max_back
+    expr = f"x.{markprop} {max_back} < x.{markprop} N {max_back} % x.{markprop} min ?"     # if markprop < max_back: skip as much as possible, else (long run) throttle shift so it doesn't slide forever
+    out  = core.akarin.Select(choices, [prop_src], [expr])                                 # each frame selects the clip with an earlier frame if possible
+    out  = core.std.CopyFrameProps(out, prop_src, props=["_DurationNum", "_DurationDen"])  # copy original correctly ordered fps props 
     
     if debug:
-        i = f"x.{diffprop} 10 * round 100 / trunc"
-        f = f"x.{diffprop} 10 * round dup 100 / trunc 100 * - trunc"
-        out = core.akarin.PropExpr(out, lambda: dict(tiletools_i=i, tiletools_f=f))  # round prop to 2 decimal places
-        out = core.akarin.Text(out, "Difference to previous frame: {tiletools_i:d}.{tiletools_f:02d}\nCurrent frame: {N}", alignment=9, scale=2)
+        text = lambda n, f, c=out: c.text.Text(f"Difference to previous frame: {f.props[diffprop] / 10:.2f}\nCurrent frame: {n}", alignment=9, scale=2)
+        out  = core.std.FrameEval(out, text, prop_src=[prop_src])                          # round prop to 2 decimal places, divide by 10, render debug overlay
         if clip_format.sample_type == vs.FLOAT and clip_format.bits_per_sample == 16:
             out = core.resize.Point(out, format=clip.format.replace(bits_per_sample=16))
     
