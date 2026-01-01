@@ -78,13 +78,13 @@ def _maskedmerge(clipa, clipb, mask):
         return core.std.Expr([clipa, clipb, mask], expr=["x 1 z - * y z * +"])
     return core.std.MaskedMerge(clipa, clipb, mask, first_plane=True)
 
-def _fillborders(clip, left=0, right=0, top=0, bottom=0, mode="mirror", inwards=False):
-    # uses fillborders for padding
+def _fillborders_core(clip, left=0, right=0, top=0, bottom=0, mode="mirror", pad=False):
+    # uses fillborders optionally for padding
     width  = clip.width
     height = clip.height
     
     # original fillborders behaviour
-    if inwards:
+    if not pad:
         return core.fb.FillBorders(clip, left=left, right=right, top=top, bottom=bottom, mode=mode)
 
     # fillborders plugin doesn't support larger padding for mirror
@@ -108,8 +108,10 @@ def _fillborders(clip, left=0, right=0, top=0, bottom=0, mode="mirror", inwards=
         height *= 2
     return clip
 
-def _fillborders_padder(clip, left=0, right=0, top=0, bottom=0, mode="mirror", inwards=False):
+def _fillborders(clip, left=0, right=0, top=0, bottom=0, mode="mirror", region="pad"):
     # adds support for all formats to fillborders and fixes broken modes
+    if region not in ("pad", "fill"):
+        raise ValueError('Region must be "pad" or "fill".')
     clip_format = clip.format
     
     # fillmargins is broken with lower than 12bit
@@ -119,7 +121,7 @@ def _fillborders_padder(clip, left=0, right=0, top=0, bottom=0, mode="mirror", i
     
     # if already integer or not broken mode use directly
     if clip_format.sample_type == vs.INTEGER and not (broken_fillmargins or broken_fixborders):
-        return _fillborders(clip, left=left, right=right, top=top, bottom=bottom, mode=mode, inwards=inwards)
+        return _fillborders_core(clip, left=left, right=right, top=top, bottom=bottom, mode=mode, pad=region=="pad")
     
     # if fixborders and RGB, convert to YUV
     if mode == "fixborders" and clip_format.color_family == vs.RGB:
@@ -129,81 +131,87 @@ def _fillborders_padder(clip, left=0, right=0, top=0, bottom=0, mode="mirror", i
         family = clip_format.color_family
         matrix = {}
     
-    # convert to 16bit, fillborders pad, convert back
+    # convert to 16bit, fillborders, convert back
     clip_format_int = core.query_video_format(family, vs.INTEGER, 16, clip_format.subsampling_w, clip_format.subsampling_h)
     clip_fill = core.resize.Point(clip, format=clip_format_int.id, **matrix)
-    clip_fill = _fillborders(clip_fill, left=left, right=right, top=top, bottom=bottom, mode=mode, inwards=inwards)
+    clip_fill = _fillborders_core(clip_fill, left=left, right=right, top=top, bottom=bottom, mode=mode, pad=region=="pad")
     clip_fill = core.resize.Point(clip_fill, format=clip_format.id)
     if clip_format.sample_type == vs.INTEGER:  # original was integer, masking to protect inner float values is not needed
         return clip_fill
     
     # keep original float values inside, use filled border outside
-    if not inwards:
+    if region == "pad":
         clip = core.std.AddBorders(clip, left=left, right=right, top=top, bottom=bottom)
     mask_format = core.query_video_format(vs.GRAY, clip_format.sample_type, clip_format.bits_per_sample, 0, 0)
-    mask = core.std.BlankClip(clip, format=mask_format, width=clip.width - left - right, height=clip.height - top - bottom, color=0, keep=True)
+    mask = core.std.BlankClip(clip, format=mask_format.id, width=clip.width - left - right, height=clip.height - top - bottom, color=0, keep=True)
     whit = 1.0 if mask_format.sample_type == vs.FLOAT else (1 << mask_format.bits_per_sample) - 1
     mask = core.std.AddBorders(mask, left=left, right=right, top=top, bottom=bottom, color=whit)
     return _maskedmerge(clip, clip_fill, mask)
 
-def _cv_outpaint_padder(clip, left=0, right=0, top=0, bottom=0, mode="telea", inwards=False):
+def _cv_inpaint(clip, left=0, right=0, top=0, bottom=0, mode="telea", region="pad"):
+    if not (isinstance(region, vs.VideoNode)or region in ("pad", "fill")):
+        raise ValueError('Region must be "pad", "fill", or a mask clip.')
     clip_format = clip.format
     
-    # select outpaint mode
+    # select inpaint mode
     if mode == "telea":
-        outpaint = lambda c, m: core.cv_inpaint.InpaintTelea(c, m, radius=3)
+        inpaint = lambda c, m: core.cv_inpaint.InpaintTelea(c, m, radius=3)
     elif mode == "ns":
-        outpaint = lambda c, m: core.cv_inpaint.InpaintNS(c, m, radius=3)
+        inpaint = lambda c, m: core.cv_inpaint.InpaintNS(c, m, radius=3)
     elif mode == "fsr":
-        outpaint = lambda c, m: core.cv_inpaint.InpaintFSR(c, m)
+        inpaint = lambda c, m: core.cv_inpaint.InpaintFSR(c, m)
     
-    mask_width  = clip.width
-    mask_height = clip.height
-    if inwards:
-        mask_width  -= left + right
-        mask_height -= top + bottom
-    
-    # create outpaint mask
-    mask = core.std.BlankClip(clip, format=vs.GRAY8, width=mask_width, height=mask_height, color=0, keep=True)
-    mask = core.std.AddBorders(mask, left=left, right=right, top=top, bottom=bottom, color=255)
+    # provide own mask
+    if isinstance(region, vs.VideoNode):
+        mask = region
+    # create mask
+    else:
+        mask_width  = clip.width
+        mask_height = clip.height
+        if region == "fill":
+            mask_width  -= left + right
+            mask_height -= top + bottom
+        
+        mask = core.std.BlankClip(clip, format=vs.GRAY8, width=mask_width, height=mask_height, color=0, keep=True)
+        mask = core.std.AddBorders(mask, left=left, right=right, top=top, bottom=bottom, color=255)
 
     # if clip is rgb24 or gray8, no conversion is needed
     if clip_format.id == vs.RGB24 or clip_format.id == vs.GRAY8:
-        if not inwards:
+        if region == "pad":
             clip = core.std.AddBorders(clip, left=left, right=right, top=top, bottom=bottom)
-        clip = outpaint(clip, mask)
+        clip = inpaint(clip, mask)
         return clip
     
-    clip_outpaint = clip
+    clip_inpaint = clip
     
     # add 709 matrix prop for rgb roundtrip if input is yuv
     if clip_format.color_family == vs.YUV:
-        clip_outpaint = core.std.SetFrameProps(clip_outpaint, _Matrix=vs.MATRIX_BT709)
+        clip_inpaint = core.std.SetFrameProps(clip_inpaint, _Matrix=vs.MATRIX_BT709)
 
     # convert to 8bit rgb or gray
     if clip_format.color_family == vs.GRAY:
-        clip_outpaint = core.resize.Point(clip_outpaint, format=vs.GRAY8)
+        clip_inpaint = core.resize.Point(clip_inpaint, format=vs.GRAY8)
     else:
-        clip_outpaint = core.resize.Point(clip_outpaint, format=vs.RGB24)
+        clip_inpaint = core.resize.Point(clip_inpaint, format=vs.RGB24)
 
     # pad clips
-    if not inwards:
-        clip_outpaint = core.std.AddBorders(clip_outpaint, left=left, right=right, top=top, bottom=bottom)
+    if region == "pad":
+        clip_inpaint = core.std.AddBorders(clip_inpaint, left=left, right=right, top=top, bottom=bottom)
         clip          = core.std.AddBorders(clip         , left=left, right=right, top=top, bottom=bottom)
     
-    # outpaint
-    clip_outpaint = outpaint(clip_outpaint, mask)
+    # inpaint
+    clip_inpaint = inpaint(clip_inpaint, mask)
     
     # convert back
     if clip_format.color_family == vs.YUV:
-        clip_outpaint = core.resize.Bilinear(clip_outpaint, format=clip_format.id, matrix_s="709")
+        clip_inpaint = core.resize.Bilinear(clip_inpaint, format=clip_format.id, matrix_s="709")
     else:
-        clip_outpaint = core.resize.Bilinear(clip_outpaint, format=clip_format.id)
+        clip_inpaint = core.resize.Bilinear(clip_inpaint, format=clip_format.id)
     
     # keep original inside, use outpainted border outside
     mask_format = core.query_video_format(vs.GRAY, clip_format.sample_type, clip_format.bits_per_sample, 0, 0)
-    mask = core.resize.Point(mask, format=mask_format.id, range_in_s="full")       # set range_in to avoid out of range values if this converts to float
-    return _maskedmerge(clip, clip_outpaint, mask)
+    mask = core.resize.Point(mask, format=mask_format.id, range_in_s="full")  # set range_in to avoid out of range values if this converts to float
+    return _maskedmerge(clip, clip_inpaint, mask)
 
 
 def pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
@@ -243,11 +251,11 @@ def pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
 
     # fillborder modes
     elif isinstance(mode, str) and mode in fb_modes:
-        out = _fillborders_padder(clip, left=left, right=right, top=top, bottom=bottom, mode=mode)
+        out = _fillborders(clip, left=left, right=right, top=top, bottom=bottom, mode=mode, region="pad")
 
     # outpaint modes
     elif isinstance(mode, str) and mode in cv_modes:
-        out = _cv_outpaint_padder(clip, left=left, right=right, top=top, bottom=bottom, mode=mode)
+        out = _cv_inpaint(clip,  left=left, right=right, top=top, bottom=bottom, mode=mode, region="pad")
 
     # wrap padding
     elif isinstance(mode, str) and mode == "wrap":
@@ -500,9 +508,9 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
         if (t | b | l | r) == 0:
             return clip
         elif fb:
-            return _fillborders_padder(clip, left=l, right=r, top=t, bottom=b, mode=fill, inwards=True)
+            return _fillborders(clip, left=l, right=r, top=t, bottom=b, mode=fill, region="fill")
         elif cv:
-            return _cv_outpaint_padder(clip, left=l, right=r, top=t, bottom=b, mode=fill, inwards=True)
+            return _cv_inpaint(clip,  left=l, right=r, top=t, bottom=b, mode=fill, region="fill")
         else:
             cropped = core.std.Crop(clip, left=l, right=r, top=t, bottom=b)
             return core.std.AddBorders(cropped, left=l, right=r, top=t, bottom=b, color=fill_color)
