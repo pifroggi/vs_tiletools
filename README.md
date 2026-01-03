@@ -32,8 +32,8 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
   * [TPad](#tpad) - Temporally pads with various padding modes
   * [Trim](#trim) - Auto trims temporally padded clip from `tpad()`
   * [Crossfade](#crossfade) - Crossfades between two clips
-* [Example Usage](#example-usage)
-* [Padding Modes](#padding-modes)
+* [Usage Examples](#usage-examples)
+* [Mode Explanations](#mode-explanations)
 
 <br />
 
@@ -367,8 +367,8 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
 <br />
 
-## Example Usage
-Examples of how the functions are used together.
+## Usage Examples
+Examples of how the paired functions are used together.
 
 * #### Reduce VRAM usage on heavy AI models via tiling.
   ```python
@@ -420,8 +420,8 @@ Examples of how the functions are used together.
 
 <br />
 
-## Padding Modes
-Full explanation for all padding modes.
+## Mode Explanations
+Full explanations for all padding/filling/inpainting modes.
 
 * __Spatial__
   * `mirror` Reflects the image into the padded region.
