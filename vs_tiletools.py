@@ -160,6 +160,8 @@ def _cv_inpaint(clip, left=0, right=0, top=0, bottom=0, mode="telea", region="pa
         inpaint = lambda c, m: core.cv_inpaint.InpaintNS(c, m, radius=3)
     elif mode == "fsr":
         inpaint = lambda c, m: core.cv_inpaint.InpaintFSR(c, m)
+    elif mode == "shiftmap":
+        inpaint = lambda c, m: core.cv_inpaint.InpaintShiftmap(c, m)
     
     # provide own mask
     if isinstance(region, vs.VideoNode):
@@ -197,7 +199,7 @@ def _cv_inpaint(clip, left=0, right=0, top=0, bottom=0, mode="telea", region="pa
     # pad clips
     if region == "pad":
         clip_inpaint = core.std.AddBorders(clip_inpaint, left=left, right=right, top=top, bottom=bottom)
-        clip          = core.std.AddBorders(clip         , left=left, right=right, top=top, bottom=bottom)
+        clip         = core.std.AddBorders(clip        , left=left, right=right, top=top, bottom=bottom)
     
     # inpaint
     clip_inpaint = inpaint(clip_inpaint, mask)
@@ -410,6 +412,52 @@ def mod(clip, modulus=64, mode="mirror"):
     pad_w  = (-width)  % mod_w
     pad_h  = (-height) % mod_h
     return pad(clip, right=pad_w, bottom=pad_h, mode=mode)  # call pad() even if pad is 0, so props are written and auto crop still works 
+
+
+def inpaint(clip, mask, mode="ns"):
+    """Inpaints areas in a clip based on a mask with various inpaint modes.
+
+    Args:
+        clip: Clip to be inpainted. Any format.
+        mask: Black and white mask clip where white means inpainting. Can be a single frame, or different each frame.
+            If too short, the last frame will be looped. Can be any format.
+        mode: Inpaint mode can be "telea", "ns", "fsr", or "shiftmap".
+    """
+    if not isinstance(clip, vs.VideoNode):
+        raise TypeError("vs_tiletools.inpaint: Clip must be a vapoursynth clip.")
+    if clip.format.id == vs.PresetVideoFormat.NONE or clip.width == 0 or clip.height == 0:
+        raise TypeError("vs_tiletools.inpaint: Clip must have constant format and dimensions.")
+    if not isinstance(mask, vs.VideoNode):
+        raise TypeError("vs_tiletools.inpaint: Mask must be a vapoursynth clip.")
+    if mask.format.id == vs.PresetVideoFormat.NONE or mask.width == 0 or mask.height == 0:
+        raise TypeError("vs_tiletools.inpaint: Mask must have constant format and dimensions.")
+    if clip.width != mask.width or clip.height != mask.height:
+        raise TypeError("vs_tiletools.inpaint: Clip and Mask must have the same dimensions.")
+
+    # prepare mask
+    if mask.format.color_family != vs.GRAY:
+        mask = core.std.ShufflePlanes(mask, 0, vs.GRAY)
+    if mask.format.id != vs.GRAY8:
+        mask = core.resize.Point(mask, format=vs.GRAY8, range_s="full")
+    else:
+        mask = core.std.SetFrameProps(mask, _ColorRange=vs.RANGE_FULL)
+    mask = core.std.BinarizeMask(mask)
+    
+    # loop last frame or trim to match clip length
+    if clip.num_frames < mask.num_frames:
+        mask = core.std.Trim(mask, length=clip.num_frames)
+    elif clip.num_frames > mask.num_frames:
+        if mask.num_frames == 1:
+            mask = core.std.Loop(mask, times=clip.num_frames)
+        else:
+            last = core.std.Trim(mask, first=mask.num_frames - 1, length=1)
+            mask = mask + core.std.Loop(last, times=clip.num_frames - mask.num_frames)
+
+    # inpaint
+    if isinstance(mode, str) and (mode in cv_modes or mode == "shiftmap"):
+        return _cv_inpaint(clip, mode=mode, region=mask)
+    else:
+        raise TypeError("vs_tiletools.inpaint: Mode must be 'telea', 'ns', 'fsr', or 'shiftmap'.")
 
 
 def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 128], tol=16, fill="mirror"):
