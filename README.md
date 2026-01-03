@@ -175,7 +175,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Clip to be inpainted. Any format.
   
   __*`mask`*__  
-  Black and white mask clip where white means inpainting. Can be a single frame, or different each frame. If too short, the last frame will be looped. Can be any format.
+  Black and white mask clip where white means inpainting. Can be a single frame long, or longer and different each frame. If too short, the last frame will be looped. Can be any format and doesn't have to match.
   
   __*`mode`*__  
   Inpainting mode can be `telea`, `ns`, `fsr` or `shiftmap`.
