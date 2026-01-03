@@ -21,6 +21,7 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
   * [Pad](#pad) - Pads a clip with various padding modes
   * [Crop](#crop) - Auto crops padded clip from `pad()` or `mod()`, even if resized
   * [Mod](#mod) - Pads or crops a clip so width and height are multiples of the given modulus
+  * [Inpaint](#inpaint) - Inpaints areas based on a mask with various inpainting modes
   * [Autofill](#autofill) - Auto detects borders and fills them with various fill modes
   * [Croprandom](#croprandom) - Crops to given dimensions, but randomly repositions the window each frame
 * [Temporal Functions](#temporal-functions)
@@ -142,6 +143,42 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   
   __*`mode`*__  
   Mode to reach the next upper multiple via padding can be `mirror`, `wrap`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, or `discard` to crop to the next lower multiple.
+
+---
+
+* ### Croprandom
+  Crops to the given dimensions, but randomly repositions the crop window each frame.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.croprandom(clip, width=256, height=256, seed=0)
+  ```
+  
+  __*`clip`*__  
+  Clip to be cropped. Any format.
+
+  __*`width`*, *`height`*__  
+  Cropped window dimensions in pixels.
+
+  __*`seed`*__  
+  Seed used for deterministic crop randomization.
+
+---
+
+* ### Inpaint
+  Inpaints areas in a clip based on a mask with various inpainting modes.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.inpaint(clip, mask, mode="ns")
+  ```
+  
+  __*`clip`*__  
+  Clip to be inpainted. Any format.
+  
+  __*`mask`*__  
+  Black and white mask clip where white means inpainting. Can be a single frame, or different each frame. If too short, the last frame will be looped. Can be any format.
+  
+  __*`mode`*__  
+  Inpainting mode can be `telea`, `ns`, `fsr` or `shiftmap`.
 
 ---
 
