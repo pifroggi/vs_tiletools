@@ -39,10 +39,10 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
 
 ## Requirements
 * [fillborders](https://github.com/dubhater/vapoursynth-fillborders)
-* [cv_inpaint](https://github.com/dnjulek/VapourSynth-cv_inpaint) *(optional, adds pad modes: telea, ns, fsr)*
+* [cv_inpaint](https://github.com/dnjulek/VapourSynth-cv_inpaint)
 * [autocrop](https://github.com/Irrational-Encoding-Wizardry/vapoursynth-autocrop) *(optional, only for autofill)*
 * [akarin](https://github.com/Jaded-Encoding-Thaumaturgy/akarin-vapoursynth-plugin) *(optional, only for markdups/skipdups)*
-* [vship](https://github.com/Line-fr/Vship) *(optional, only for markdups/skipdups)*
+* [vship](https://github.com/Line-fr/Vship) *(optional, only for markdups/skipdups, requires v4.0.0 or newer)*
 
 ## Setup
 Put the `vs_tiletools.py` file into your vapoursynth scripts folder.  
@@ -431,6 +431,7 @@ Full explanation for all padding modes.
   * `telea` Telea's algorithm. Similar to fillmargins, but all padding gets more blurry the further away it is.
   * `ns` Navier-Stokes algorithm. Similar to telea, but less blurry.
   * `fsr` Frequency Selective Reconstructiom algorithm. Better at keeping patterns/textures, but is slow.
+  * `shiftmap` Shifts part of the existing image to fill the holes. Only for inpainting.
   * `black` Solid black padding.
   * `[128, 128, 128]` Solid custom color padding. 8-bit values per plane in the clip’s color family.
 
