@@ -445,6 +445,6 @@ Full explanations for all padding/filling/inpainting modes.
 <br />
 
 > [!NOTE]
-> The padded regions may be generated at a lower bit depth due to plugin limitations (16-bit for fillborders, 8-bit for cv_inpaint), then upsampled and combined with the original high depth frame. This should usually not be an issue. Modes `fillmargins` and `fixborders`, which are partially broken when using the fillborders plugin directly, are also fixed here.
+> The padded/filled/inpainted regions may be generated at a lower bit depth due to plugin limitations (16-bit for fillborders, 8-bit for cv_inpaint), then upsampled and merged onto the original high depth frames. This should usually not be an issue.
 >
-> Padding mode `fixborders` is additionally supported in all functions, if the [fillborders](https://github.com/dubhater/vapoursynth-fillborders) plugin is compiled from source. See [this](https://github.com/dubhater/vapoursynth-fillborders/issues/7) issue.
+> Padding mode `fixborders` is additionally supported in all functions, if the [fillborders](https://github.com/dubhater/vapoursynth-fillborders) plugin is compiled from source. See [this](https://github.com/dubhater/vapoursynth-fillborders/issues/7) issue. Modes `fillmargins` and `fixborders`, which are partially broken when using the fillborders plugin directly, are also fixed here.
