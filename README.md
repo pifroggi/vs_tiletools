@@ -19,8 +19,8 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
   * [Tile](#tile) - Splits each frame into tiles of fixed dimensions
   * [Untile](#untile) - Auto reassembles tiles from `tile()`, even if resized
   * [Pad](#pad) - Pads a clip with various padding modes
-  * [Crop](#crop) - Auto crops padded clip from `pad()` or `mod()`, even if resized
   * [Mod](#mod) - Pads or crops a clip so width and height are multiples of the given modulus
+  * [Crop](#crop) - Auto crops padded clip from `pad()` or `mod()`, even if resized
   * [Inpaint](#inpaint) - Inpaints areas based on a mask with various inpainting modes
   * [Autofill](#autofill) - Auto detects borders and fills them with various fill modes
   * [Croprandom](#croprandom) - Crops to given dimensions, but randomly repositions the window each frame
@@ -112,22 +112,6 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
 ---
 
-* ### Crop
-  Automatically crops padding added by `pad()` or `mod()`, even if the clip was since resized. [Example1](#fix-issues-around-borders-with-some-filters-via-padding) [Example2](#fix-filters-that-require-the-input-to-be-divisible-by-a-factor-via-padding)
-  ```python
-  import vs_tiletools
-  clip = vs_tiletools.crop(clip) # automatic
-  clip = vs_tiletools.crop(clip, left=0, right=0, top=0, bottom=0) # manual
-  ```
-  
-  __*`clip`*__  
-  Padded clip. Any format.
-  
-  __*`left`*, *`right`*, *`top`*, *`bottom`* (optional)__  
-  Optionally you can also enter crop values manually.
-
----
-
 * ### Mod
   Pads or crops a clip so width and height are multiples of the given modulus.
   ```python
@@ -146,21 +130,19 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
 ---
 
-* ### Croprandom
-  Crops to the given dimensions, but randomly repositions the crop window each frame.
+* ### Crop
+  Automatically crops padding added by `pad()` or `mod()`, even if the clip was since resized. [Example1](#fix-issues-around-borders-with-some-filters-via-padding) [Example2](#fix-filters-that-require-the-input-to-be-divisible-by-a-factor-via-padding)
   ```python
   import vs_tiletools
-  clip = vs_tiletools.croprandom(clip, width=256, height=256, seed=0)
+  clip = vs_tiletools.crop(clip) # automatic
+  clip = vs_tiletools.crop(clip, left=0, right=0, top=0, bottom=0) # manual
   ```
   
   __*`clip`*__  
-  Clip to be cropped. Any format.
-
-  __*`width`*, *`height`*__  
-  Cropped window dimensions in pixels.
-
-  __*`seed`*__  
-  Seed used for deterministic crop randomization.
+  Padded clip. Any format.
+  
+  __*`left`*, *`right`*, *`top`*, *`bottom`* (optional)__  
+  Optionally you can also enter crop values manually.
 
 ---
 
@@ -179,24 +161,6 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   
   __*`mode`*__  
   Inpainting mode can be `telea`, `ns`, `fsr` or `shiftmap`.
-
----
-
-* ### Croprandom
-  Crops to the given dimensions, but randomly repositions the crop window each frame.
-  ```python
-  import vs_tiletools
-  clip = vs_tiletools.croprandom(clip, width=256, height=256, seed=0)
-  ```
-  
-  __*`clip`*__  
-  Clip to be cropped. Any format.
-
-  __*`width`*, *`height`*__  
-  Cropped window dimensions in pixels.
-
-  __*`seed`*__  
-  Seed used for deterministic crop randomization.
 
 ---
 
@@ -225,6 +189,24 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
   __*`fill`*__  
   Filling mode can be `mirror`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
+
+---
+
+* ### Croprandom
+  Crops to the given dimensions, but randomly repositions the crop window each frame.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.croprandom(clip, width=256, height=256, seed=0)
+  ```
+  
+  __*`clip`*__  
+  Clip to be cropped. Any format.
+
+  __*`width`*, *`height`*__  
+  Cropped window dimensions in pixels.
+
+  __*`seed`*__  
+  Seed used for deterministic crop randomization.
 
 ---
 
