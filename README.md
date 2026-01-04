@@ -15,23 +15,30 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
 ## Table of Contents
 * [Requirements](#requirements)
 * [Setup](#setup)
-* [Spatial Functions](#spatial-functions)
-  * [Tile](#tile) - Splits each frame into tiles of fixed dimensions
-  * [Untile](#untile) - Auto reassembles tiles from `tile()`, even if resized
-  * [Pad](#pad) - Pads a clip with various padding modes
-  * [Mod](#mod) - Pads or crops a clip so width and height are multiples of the given modulus
-  * [Crop](#crop) - Auto crops padded clip from `pad()` or `mod()`, even if resized
-  * [Inpaint](#inpaint) - Inpaints areas based on a mask with various inpainting modes
-  * [Autofill](#autofill) - Auto detects borders and fills them with various fill modes
-  * [Croprandom](#croprandom) - Crops to given dimensions, but randomly repositions the window each frame
-* [Temporal Functions](#temporal-functions)
-  * [Markdups](#markdups) - Marks identical frames as duplicates, which can later be skipped using `skipdups()`
-  * [Skipdups](#skipdups) - Skips processing of duplicate frames marked by `markdups()`
-  * [Window](#window) - Inserts temporal overlaps a the end of fixed length temporal windows
-  * [Unwindow](#unwindow) - Auto removes or crossfades overlaps added by `window()`
-  * [TPad](#tpad) - Temporally pads with various padding modes
-  * [Trim](#trim) - Auto trims temporally padded clip from `tpad()`
-  * [Crossfade](#crossfade) - Crossfades between two clips
+* [Spatial Functions](#spatial-functions)  
+<sub>     *Tiling*</sub>  
+  ⚬ [Tile](#tile) - Splits each frame into tiles of fixed dimensions  
+  ⚬ [Untile](#untile) - Auto reassembles tiles from `tile()`, even if resized  
+<sub>     *Padding/Cropping*</sub>  
+  ⚬ [Pad](#pad) - Pads a clip with various padding modes  
+  ⚬ [Mod](#mod) - Pads or crops a clip so width and height are multiples of the given modulus  
+  ⚬ [Crop](#crop) - Auto crops padded clip from `pad()` or `mod()`, even if resized  
+  ⚬ [Croprandom](#croprandom) - Crops to given dimensions, but randomly repositions the window each frame  
+<sub>     *Inpainting/Filling*</sub>  
+  ⚬ [Inpaint](#inpaint) - Inpaints areas based on a mask with various inpainting modes  
+  ⚬ [Autofill](#autofill) - Auto detects borders and fills them with various fill modes  
+* [Temporal Functions](#temporal-functions)  
+<sub>     *Duplicate Detection*</sub>  
+  ⚬ [Markdups](#markdups) - Marks identical frames as duplicates, which can later be skipped using `skipdups()`  
+  ⚬ [Skipdups](#skipdups) - Skips processing of duplicate frames marked by `markdups()`  
+<sub>     *Windowing*</sub>  
+  ⚬ [Window](#window) - Inserts temporal overlaps a the end of fixed length temporal windows  
+  ⚬ [Unwindow](#unwindow) - Auto removes or crossfades overlaps added by `window()`  
+<sub>     *Padding/Trimming*</sub>  
+  ⚬ [TPad](#tpad) - Temporally pads with various padding modes  
+  ⚬ [Trim](#trim) - Auto trims temporally padded clip from `tpad()`  
+<sub>     *Other*</sub>  
+  ⚬ [Crossfade](#crossfade) - Crossfades between two clips
 * [Usage Examples](#usage-examples)
 * [Mode Explanations](#mode-explanations)
 
@@ -146,6 +153,24 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
 ---
 
+* ### Croprandom
+  Crops to the given dimensions, but randomly repositions the crop window each frame.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.croprandom(clip, width=256, height=256, seed=0)
+  ```
+  
+  __*`clip`*__  
+  Clip to be cropped. Any format.
+
+  __*`width`*, *`height`*__  
+  Cropped window dimensions in pixels.
+
+  __*`seed`*__  
+  Seed used for deterministic crop randomization.
+
+---
+
 * ### Inpaint
   Inpaints areas in a clip based on a mask with various inpainting modes.
   ```python
@@ -189,24 +214,6 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
   __*`fill`*__  
   Filling mode can be `mirror`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
-
----
-
-* ### Croprandom
-  Crops to the given dimensions, but randomly repositions the crop window each frame.
-  ```python
-  import vs_tiletools
-  clip = vs_tiletools.croprandom(clip, width=256, height=256, seed=0)
-  ```
-  
-  __*`clip`*__  
-  Clip to be cropped. Any format.
-
-  __*`width`*, *`height`*__  
-  Cropped window dimensions in pixels.
-
-  __*`seed`*__  
-  Seed used for deterministic crop randomization.
 
 ---
 
