@@ -13,6 +13,12 @@ cv_modes    = {"telea", "ns", "fsr"}
 markdup_reg = {}
 markdup_id  = 1
 
+def _expr(clips, expr, format=None):
+    if hasattr(core, "akarin"):
+        return core.akarin.Expr(clips, expr, format=format)
+    else:
+        return core.std.Expr(clips, expr, format=format)
+
 def _clamp8(x):
     return max(0, min(255, x))
 
@@ -75,8 +81,33 @@ def _maskedmerge(clipa, clipb, mask):
                 mask = core.std.ShufflePlanes([mask, mask_sub, mask_sub], planes=[0, 0, 0], colorfamily=clipa_format.color_family)
             else:
                 mask = core.std.ShufflePlanes(mask, planes=[0] * clipa_format.num_planes, colorfamily=clipa_format.color_family)
-        return core.std.Expr([clipa, clipb, mask], expr=["x 1 z - * y z * +"])
+        return _expr([clipa, clipb, mask], expr=["x 1 z - * y z * +"])
     return core.std.MaskedMerge(clipa, clipb, mask, first_plane=True)
+
+def _wrap(clip, left=0, right=0, top=0, bottom=0, region="pad"):
+    # wrap pixels around to create periodic tiling
+    if region == "fill":
+        clip = core.std.Crop(clip, left=left, right=right, top=top, bottom=bottom)
+    elif region != "pad":
+        raise ValueError("Region must be 'pad' or 'fill'.")
+
+    clip_w      = clip.width
+    clip_h      = clip.height
+    tile_l      = (left   + clip_w - 1) // clip_w
+    tile_r      = (right  + clip_w - 1) // clip_w
+    tile_t      = (top    + clip_h - 1) // clip_h
+    tile_b      = (bottom + clip_h - 1) // clip_h
+    crop_l      = tile_l * clip_w - left
+    crop_r      = tile_r * clip_w - right
+    crop_t      = tile_t * clip_h - top
+    crop_b      = tile_b * clip_h - bottom
+
+    out = clip
+    if tile_l or tile_r:
+        out = core.std.StackHorizontal([out] * (tile_l + 1 + tile_r))
+    if tile_t or tile_b:
+        out = core.std.StackVertical([out] * (tile_t + 1 + tile_b))
+    return core.std.Crop(out, left=crop_l, right=crop_r, top=crop_t, bottom=crop_b)
 
 def _fillborders_core(clip, left=0, right=0, top=0, bottom=0, mode="mirror", pad=False):
     # uses fillborders optionally for padding
@@ -193,6 +224,8 @@ def _cv_inpaint(clip, left=0, right=0, top=0, bottom=0, mode="telea", region="pa
     # convert to 8bit rgb or gray
     if clip_format.color_family == vs.GRAY:
         clip_inpaint = core.resize.Point(clip_inpaint, format=vs.GRAY8)
+    elif clip_format.subsampling_w > 0 or clip_format.subsampling_h > 0:
+        clip_inpaint = core.resize.Bilinear(clip_inpaint, format=vs.RGB24)  # usample chroma bilinear if subsampled
     else:
         clip_inpaint = core.resize.Point(clip_inpaint, format=vs.RGB24)
 
@@ -261,21 +294,7 @@ def pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
 
     # wrap padding
     elif isinstance(mode, str) and mode == "wrap":
-        tile_l = (left   + orig_w - 1) // orig_w
-        tile_r = (right  + orig_w - 1) // orig_w
-        tile_t = (top    + orig_h - 1) // orig_h
-        tile_b = (bottom + orig_h - 1) // orig_h
-        crop_l = tile_l * orig_w - left
-        crop_r = tile_r * orig_w - right
-        crop_t = tile_t * orig_h - top
-        crop_b = tile_b * orig_h - bottom
-        
-        out = clip
-        if tile_l or tile_r:
-            out = core.std.StackHorizontal([out] * (tile_l + 1 + tile_r))
-        if tile_t or tile_b:
-            out = core.std.StackVertical([out] * (tile_t + 1 + tile_b))
-        out = core.std.Crop(out, left=crop_l, right=crop_r, top=crop_t, bottom=crop_b)
+        out = _wrap(clip, left=left, right=right, top=top, bottom=bottom, region="pad")
 
     # solid color
     else:
@@ -414,14 +433,14 @@ def mod(clip, modulus=64, mode="mirror"):
     return pad(clip, right=pad_w, bottom=pad_h, mode=mode)  # call pad() even if pad is 0, so props are written and auto crop still works 
 
 
-def inpaint(clip, mask, mode="ns"):
-    """Inpaints areas in a clip based on a mask with various inpaint modes.
+def inpaint(clip, mask, mode="telea"):
+    """Inpaints areas in a clip based on a mask with various inpainting modes.
 
     Args:
         clip: Clip to be inpainted. Any format.
         mask: Black and white mask clip where white means inpainting. Can be a single frame, or different each frame.
             If too short, the last frame will be looped. Can be any format.
-        mode: Inpaint mode can be "telea", "ns", "fsr", or "shiftmap".
+        mode: Inpainting mode can be "telea", "ns", "fsr", or "shiftmap".
     """
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.inpaint: Clip must be a vapoursynth clip.")
@@ -458,6 +477,64 @@ def inpaint(clip, mask, mode="ns"):
         return _cv_inpaint(clip, mode=mode, region=mask)
     else:
         raise TypeError("vs_tiletools.inpaint: Mode must be 'telea', 'ns', 'fsr', or 'shiftmap'.")
+
+
+def fill(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
+    """Fills the borders of a clip with various filling modes. Basically padding, but inwards.
+
+    Args:
+        clip: Clip to be filled. Any format.
+        left, right, top, bottom: Fill amount in pixels.
+        mode: Filling mode can be "mirror", "wrap", "repeat", "fillmargins", "telea", "ns", "fsr", "black", or a custom color
+            in 8-bit scale [128, 128, 128].
+    """
+    if not isinstance(clip, vs.VideoNode):
+        raise TypeError("vs_tiletools.fill: Clip must be a vapoursynth clip.")
+    if clip.format.id == vs.PresetVideoFormat.NONE or clip.width == 0 or clip.height == 0:
+        raise TypeError("vs_tiletools.fill: Clip must have constant format and dimensions.")
+        
+    left, right, top, bottom = int(left), int(right), int(top), int(bottom)
+    clip_format = clip.format
+    width       = clip.width
+    height      = clip.height
+    sub_w       = 1 << (clip_format.subsampling_w or 0)
+    sub_h       = 1 << (clip_format.subsampling_h or 0)
+
+    if min(left, right, top, bottom) < 0:
+        raise ValueError("vs_tiletools.fill: Fill amount can not be negative.")
+    if left + right >= width or top + bottom >= height:
+        raise ValueError("vs_tiletools.fill: Fill amount must be smaller than clip dimensions.")
+    if mode == "mirror" and (width < 2 * left or width < 2 * right or height < 2 * top or height < 2 * bottom):
+        raise ValueError("vs_tiletools.fill: Fill amount must be less than half of the clip dimensions for mode 'mirror'.")
+
+    # check subsampling
+    _check_modulus(left,  sub_w, "Left fill amount",  "fill", clip_format)
+    _check_modulus(right, sub_w, "Right fill amount", "fill", clip_format)
+    _check_modulus(top,   sub_h, "Top fill amount",   "fill", clip_format)
+    _check_modulus(bottom,sub_h, "Bottom fill amount","fill", clip_format)
+
+    # if fill amount is 0, skip filling
+    if not any((left, right, top, bottom)):
+        return clip
+
+    # fillborder modes
+    if isinstance(mode, str) and mode in fb_modes:
+        return _fillborders(clip, left=left, right=right, top=top, bottom=bottom, mode=mode, region="fill")
+
+    # outpaint modes
+    if isinstance(mode, str) and mode in cv_modes:
+        return _cv_inpaint(clip,  left=left, right=right, top=top, bottom=bottom, mode=mode, region="fill")
+
+    # wrap filling
+    if isinstance(mode, str) and mode == "wrap":
+        return _wrap(clip,  left=left, right=right, top=top, bottom=bottom, region="fill")
+
+    # solid color
+    color = _normalize_color(mode, clip_format, "fill")
+    if color is False:
+        raise TypeError("vs_tiletools.fill: Mode must be 'mirror', 'wrap', 'repeat', 'fillmargins', 'telea', 'ns', 'fsr', 'black', or custom color values [128, 128, 128].")
+    clip = core.std.Crop(clip, left=left, right=right, top=top, bottom=bottom)
+    return core.std.AddBorders(clip, left=left, right=right, top=top, bottom=bottom, color=color)
 
 
 def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 128], tol=16, fill="mirror"):
