@@ -25,8 +25,8 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
   ⚬ [Crop](#crop) - Auto crops padded clip from `pad()` or `mod()`, even if resized  
   ⚬ [Croprandom](#croprandom) - Crops to given dimensions, but randomly repositions the window each frame  
 <sub>     *Inpainting/Filling*</sub>  
-  ⚬ [Inpaint](#inpaint) - Inpaints areas based on a mask with various inpainting modes
-  ⚬ [Fill](#fill) - Fills the borders of a clip with various filling modes.
+  ⚬ [Inpaint](#inpaint) - Inpaints areas based on a mask with various inpainting modes  
+  ⚬ [Fill](#fill) - Fills the borders of a clip with various filling modes  
   ⚬ [Autofill](#autofill) - Auto detects borders and fills them with various fill modes  
 * [Temporal Functions](#temporal-functions)  
 <sub>     *Duplicate Detection*</sub>  
