@@ -25,7 +25,8 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
   ⚬ [Crop](#crop) - Auto crops padded clip from `pad()` or `mod()`, even if resized  
   ⚬ [Croprandom](#croprandom) - Crops to given dimensions, but randomly repositions the window each frame  
 <sub>     *Inpainting/Filling*</sub>  
-  ⚬ [Inpaint](#inpaint) - Inpaints areas based on a mask with various inpainting modes  
+  ⚬ [Inpaint](#inpaint) - Inpaints areas based on a mask with various inpainting modes
+  ⚬ [Fill](#fill) - Fills the borders of a clip with various filling modes.
   ⚬ [Autofill](#autofill) - Auto detects borders and fills them with various fill modes  
 * [Temporal Functions](#temporal-functions)  
 <sub>     *Duplicate Detection*</sub>  
@@ -175,7 +176,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Inpaints areas in a clip based on a mask with various inpainting modes.
   ```python
   import vs_tiletools
-  clip = vs_tiletools.inpaint(clip, mask, mode="ns")
+  clip = vs_tiletools.inpaint(clip, mask, mode="telea")
   ```
   
   __*`clip`*__  
@@ -186,6 +187,24 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   
   __*`mode`*__  
   Inpainting mode can be `telea`, `ns`, `fsr` or `shiftmap`.
+
+---
+
+* ### Fill
+  Fills the borders of a clip with various filling modes. Basically padding, but inwards.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.fill(clip, left=0, right=0, top=0, bottom=0, mode="mirror")
+  ```
+  
+  __*`clip`*__  
+  Clip to be filled. Any format.
+  
+  __*`left`*, *`right`*, *`top`*, *`bottom`*__  
+  Fill amount in pixel.
+  
+  __*`mode`*__  
+  Filling mode can be `mirror`, `wrap`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
 
 ---
 
