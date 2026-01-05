@@ -254,7 +254,10 @@ def pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
 
     Args:
         clip: Clip to be padded. Any format.
-        left, right, top, bottom: Padding amount in pixels.
+        left: Left padding amount in pixels.
+        right: Right padding amount in pixels.
+        top: Top padding amount in pixels.
+        bottom: Bottom padding amount in pixels.
         mode: Padding mode can be "mirror", "wrap", "repeat", "fillmargins", "telea", "ns", "fsr", "black", or a custom color
             in 8-bit scale [128, 128, 128].
     """
@@ -314,7 +317,12 @@ def crop(clip, left=None, right=None, top=None, bottom=None):
 
     Args:
         clip: Padded clip. Any format.
-        left, right, top, bottom: Optional manual crop values in pixels.
+        left: Manual mode: Left crop amount in pixels. None means auto-detect.
+        right: Manual mode: Right crop amount in pixels. None means auto-detect.
+        top: Manual mode: Top crop amount in pixels. None means auto-detect.
+        bottom: Manual mode: Bottom crop amount in pixels. None means auto-detect.
+        
+            Manual mode is enabled if you provide any of left, right, top, bottom.
     """
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.crop: Clip must be a vapoursynth clip.")
@@ -484,7 +492,10 @@ def fill(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
 
     Args:
         clip: Clip to be filled. Any format.
-        left, right, top, bottom: Fill amount in pixels.
+        left: Left fill amount in pixels.
+        right: Right fill amount in pixels.
+        top: Top fill amount in pixels.
+        bottom: Bottom fill amount in pixels.
         mode: Filling mode can be "mirror", "wrap", "repeat", "fillmargins", "telea", "ns", "fsr", "black", or a custom color
             in 8-bit scale [128, 128, 128].
     """
@@ -542,7 +553,10 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
 
     Args:
         clip: Source clip. Only YUV formats are supported.
-        left, right, top, bottom: Maximum border fill amount in pixels.
+        left: Maximum left border fill amount in pixels.
+        right: Maximum right border fill amount in pixels.
+        top: Maximum top border fill amount in pixels.
+        bottom: Maximum bottom border fill amount in pixels.
         offset: Offsets the detected fill area by an extra amount in pixels. Useful if the borders are slightly blurry.
             Does not offset sides that have detected 0 pixels.
         color: Source clip border color in 8-bit scale [16, 128, 128].
@@ -653,7 +667,8 @@ def croprandom(clip, width=256, height=256, seed=0):
 
     Args:
         clip: Source clip. Any format.
-        width, height: Cropped output dimensions in pixels.
+        width: Cropped output width in pixels.
+        height: Cropped output height in pixels.
         seed: Seed used for deterministic crop randomization.
     """
     
@@ -691,15 +706,16 @@ def croprandom(clip, width=256, height=256, seed=0):
 
 def tile(clip, width=256, height=256, overlap=16, padding="mirror"):
     """Splits a clip into tiles of fixed dimensions to reduce resource requirements. Outputs a clip with all tiles in order.
-        All filters applied to the tiled clip should be spatial only.
+    All filters applied to the tiled clip should be spatial only.
 
     Args:
         clip: Clip to tile. Any format.
-        width, height: Tile size of a single tile in pixel.
+        width: Tile width of a single tile in pixels.
+        height: Tile height of a single tile in pixels.
         overlap: Overlap from one tile to the next. When overlap is increased the tile size is not altered, so the amount
             of tiles per frame increases. Can be a single value or a pair for vertical and horizontal [16, 32].
         padding: How to handle tiles that are smaller than tile size.  These can be padded with modes "mirror", "wrap",
-        "repeat", "fillmargins", "telea", "ns", "fsr", "black", a custom color in 8 bit scale [128, 128, 128], or just
+            "repeat", "fillmargins", "telea", "ns", "fsr", "black", a custom color in 8 bit scale [128, 128, 128], or just
             discarded with "discard".
     """
     
@@ -801,10 +817,14 @@ def untile(clip, fade=False, full_width=None, full_height=None, overlap=None):
 
     Args:
         clip: Tiled clip. Any format.
-        fade: If True, feather/blend across overlaps; if False, crop overlaps.
-        full_width, full_height, overlap: Optional manual parameters. Needed is the full assembled frame dimensions
-            and the overlap between tiles. In manual mode you have to account for resized or discarded tiles yourself.  
-            Tip: If tiles were discarded, the full_width/full_height are now smaller and a multiple of the original tile size.  
+        fade: If False, crop overlaps. If True, feather/blend across overlaps.
+        full_width: Manual mode: Full assembled frame width. None means auto-detect.
+        full_height: Manual mode: Full assembled frame height. None means auto-detect.
+        overlap: Manual mode: Overlap between tiles. None means auto-detect.
+        
+            Manual mode is enabled if you provide any of full_width, full_height, or overlap. In manual mode, you must account
+            for resized or discarded tiles yourself.  
+            Tip: If tiles were discarded, full_width/full_height are smaller and a multiple of the original tile size.  
             Tip: If tiles were resized 2x, simply double all values.
     """
     
@@ -1042,8 +1062,9 @@ def tpad(clip, start=0, end=0, length=None, mode="mirror"):
 
     Args:
         clip: Clip to pad. Any format.
-        start, end: Number of frames to add at the start and/or end. Mutually exclusive with length. 
-        length: Pads clip to this absolute number of frames. Mutually exclusive with start/end. 
+        start: Number of frames to add at the start. Mutually exclusive with length.
+        end: Number of frames to add at the end. Mutually exclusive with length.
+        length: Pads clip to this absolute number of frames. Mutually exclusive with start/end.
         mode: "mirror", "loop", "repeat", "black", or a custom color in 8-bit scale like [128, 128, 128].
     """
     if not isinstance(clip, vs.VideoNode):
@@ -1153,8 +1174,11 @@ def trim(clip, start=None, end=None, length=None):
     
     Args:
         clip: Temporally padded clip. Any format.
-        start, end: Optional manual number of frames to remove from start and/or end. Mutually exclusive with length.
-        length: Optional manual trim to exactly this many frames. Mutually exclusive with start/end.
+        start: Manual mode: Number of frames to remove at the start. Mutually exclusive with length. None means auto-detect.
+        end: Manual mode: Number of frames to remove at the end. Mutually exclusive with length. None means auto-detect.
+        length: Manual mode: trim to exactly this many frames. Mutually exclusive with start/end. None means auto-detect.
+        
+            Manual mode is enabled if you provide any of start, end, length.
     """
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.trim: Clip must be a vapoursynth clip.")
@@ -1210,7 +1234,8 @@ def crossfade(clipa, clipb, length=10):
     """Crossfades between two clips without FrameEval/ModifyFrame.
 
     Args:
-        clipa, clipb: Input clips to crossfade. Any format, as long as they match.
+        clipa: First clip to crossfade from. Any format, as long as it matches clipb.
+        clipb: Second clip to crossfade to. Any format, as long as it matches clipa.
         length: Length of the crossfade. For example, 10 will fade the last 10 frames of clipa
             into the first 10 frames of clipb.
     """
@@ -1265,9 +1290,9 @@ def crossfade(clipa, clipb, length=10):
 
 def window(clip, length=20, overlap=5, padding="mirror"):
     """Inserts temporal overlaps at the end of each temporal window into the clip. That means a window with 
-        length=20 and overlap=5 will produce a clip with this frame pattern: 0–19, 15–34, 30–49, and so on.
-        In combination with the unwindow function, the overlap can then be used to crossfade between windows and
-        eliminate sudden jumps/seams that can occur on window based functions like https://github.com/pifroggi/vs_undistort.
+    length=20 and overlap=5 will produce a clip with this frame pattern: 0–19, 15–34, 30–49, and so on.
+    In combination with the unwindow function, the overlap can then be used to crossfade between windows and
+    eliminate sudden jumps/seams that can occur on window based functions like https://github.com/pifroggi/vs_undistort.
 
     Args:
         clip: Clip that should be windowed. Any format.
@@ -1353,9 +1378,13 @@ def unwindow(clip, fade=False, full_length=None, window_length=None, overlap=Non
 
     Args:
         clip: Windowed clip. Any format.
-        fade: If True, crossfade across overlaps; if False, trim overlaps.
-        full_length, window_length, overlap: Optional manual parameters. Needed is the full clip length, window
-            length and the overlap between windows. In manual mode you have to account for a discarded window yourself.  
+        fade: If False, trim overlaps. If True, crossfade across overlaps.
+        full_length: Manual mode: Full clip length without overlaps. None means auto-detect.
+        window_length: Manual mode: Length of one temporal window. None means auto-detect.
+        overlap: Manual mode: Overlap between temporal windows. None means auto-detect.
+        
+            Manual mode is enabled if you provide any of full_length, window_length, or overlap. In manual mode you have to
+            account for a discarded window yourself.  
             Tip: If the last window was discarded, the full_length is now smaller and a multiple of window_length.  
             Tip: If the windowed clip was interpolated to 2x, simply double all values.
     """
@@ -1468,16 +1497,16 @@ def markdups(clip, thresh=0.3):
 
 def skipdups(clip, prop_src=None, debug=False):
     """Skips processing of up to 5 consecutive duplicate frames marked by markdups(). That means the marked frames will copy
-       one of the previous 5 frames instead of submitting the current frame for processing. This speeds up heavy filters
-       sandwiched inbetween markdups() and skipdups().
+    one of the previous 5 frames instead of submitting the current frame for processing. This speeds up heavy filters
+    sandwiched inbetween markdups() and skipdups().
        
-       Keep in mind that if you use a heavy spatial filter, followed by a temporal filter, both inside of the sandwich, the
-       speedup will be negated, because the temporal filter will request the marked frames anyway. For this reason, it is
-       recommended to use temporal filters outside the sandwich.
+    Keep in mind that if you use a heavy spatial filter, followed by a temporal filter, both inside of the sandwich, the
+    speedup will be negated, because the temporal filter will request the marked frames anyway. For this reason, it is
+    recommended to use temporal filters outside the sandwich.
 
     Args:
         clip: Clip with marked duplicates. Any format.
-        prop_src: Optional prop source clip. This should be detected automatically. But if the frame props of the first clip
+        prop_src: Optional prop source clip. This should be auto-detected. But if the frame props of the first clip
             got lost, you can set it here manually. It should be the clip directly returned by markdups().
         debug: Overlays the frame number of the selected frame and the difference value to the previous frame onto the output.
             This is useful to finetune the sensitivity threshold in markdups().
