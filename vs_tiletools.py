@@ -1174,9 +1174,9 @@ def trim(clip, start=None, end=None, length=None):
     
     Args:
         clip: Temporally padded clip. Any format.
-        start: Manual mode: Number of frames to remove at the start. Mutually exclusive with `length`. `None` means auto-detect.
+        start: Manual mode: Number of frames to remove at the start. `None` means auto-detect.
         end: Manual mode: Number of frames to remove at the end. Mutually exclusive with `length`. `None` means auto-detect.
-        length: Manual mode: trim to exactly this many frames. Mutually exclusive with `start`/`end`. `None` means auto-detect.
+        length: Manual mode: Trim to exactly this many frames, starting at `start`. Mutually exclusive with `end`. `None` means auto-detect.
         
             Manual mode is enabled if you provide any of `start`, `end`, or `length`.
     """
@@ -1190,17 +1190,23 @@ def trim(clip, start=None, end=None, length=None):
     
     # manual trim
     if manual:
-        if length is not None and (start or end):
-            raise ValueError("vs_tiletools.trim: Use either start/end or length, not both.")
+        if length is not None and end is not None:
+            raise ValueError("vs_tiletools.trim: Use either start/end or start/length, not all three.")
         
         if length is not None:
-            length = int(length)
+            start_pad = 0 if start is None else int(start)
+            length    = int(length)
+
+            if start_pad < 0:
+                raise ValueError("vs_tiletools.trim: Start can not be negative.")
             if length < 1:
                 raise ValueError("vs_tiletools.trim: Length must be at least 1.")
-            if length > clip.num_frames:
-                raise ValueError("vs_tiletools.trim: Length can not be larger than clip length.")
-            start_pad = 0
-            end_pad   = clip.num_frames - length
+            if start_pad >= clip.num_frames:
+                raise ValueError("vs_tiletools.trim: Start can not be larger than clip length.")
+            if length > clip.num_frames - start_pad:
+                raise ValueError("vs_tiletools.trim: Length can not extend past clip end.")
+
+            end_pad = clip.num_frames - (start_pad + length)
         else:
             start_pad = 0 if start is None else int(start)
             end_pad   = 0 if end   is None else int(end)
