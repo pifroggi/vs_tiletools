@@ -25,9 +25,9 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
   ⚬ [Crop](#crop) - Auto crops padded clip from `pad()` or `mod()`, even if resized  
   ⚬ [Croprandom](#croprandom) - Crops to given dimensions, but randomly repositions the window each frame  
 <sub>     *Inpainting/Filling*</sub>  
-  ⚬ [Inpaint](#inpaint) - Inpaints areas based on a mask with various inpainting modes  
   ⚬ [Fill](#fill) - Fills the borders of a clip with various filling modes  
   ⚬ [Autofill](#autofill) - Auto detects borders and fills them with various fill modes  
+  ⚬ [Inpaint](#inpaint) - Inpaints areas based on a mask with various inpainting modes
 * [Temporal Functions](#temporal-functions)  
 <sub>     *Duplicate Detection*</sub>  
   ⚬ [Markdups](#markdups) - Marks identical frames as duplicates, which can later be skipped using `skipdups()`  
@@ -36,8 +36,8 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
   ⚬ [Window](#window) - Inserts temporal overlaps a the end of fixed length temporal windows  
   ⚬ [Unwindow](#unwindow) - Auto removes or crossfades overlaps added by `window()`  
 <sub>     *Padding/Trimming*</sub>  
-  ⚬ [TPad](#tpad) - Temporally pads with various padding modes  
-  ⚬ [Trim](#trim) - Auto trims temporally padded clip from `tpad()`  
+  ⚬ [Extend](#extend) - Extends a clip with various temporal padding modes  
+  ⚬ [Trim](#trim) - Auto trims extended clip from `extend()`  
 <sub>     *Other*</sub>  
   ⚬ [Crossfade](#crossfade) - Crossfades between two clips
 * [Usage Examples](#usage-examples)
@@ -172,24 +172,6 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
 ---
 
-* ### Inpaint
-  Inpaints areas in a clip based on a mask with various inpainting modes.
-  ```python
-  import vs_tiletools
-  clip = vs_tiletools.inpaint(clip, mask, mode="telea")
-  ```
-  
-  __*`clip`*__  
-  Clip to be inpainted. Any format.
-  
-  __*`mask`*__  
-  Black and white mask clip where white means inpainting. Can be a single frame long, or longer and different each frame. If too short, the last frame will be looped. Can be any format and doesn't have to match.
-  
-  __*`mode`*__  
-  Inpainting mode can be `telea`, `ns`, `fsr` or `shiftmap`.
-
----
-
 * ### Fill
   Fills the borders of a clip with various filling modes. Basically padding, but inwards.
   ```python
@@ -233,6 +215,24 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
   __*`fill`*__  
   Filling mode can be `mirror`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
+
+---
+
+* ### Inpaint
+  Inpaints areas in a clip based on a mask with various inpainting modes.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.inpaint(clip, mask, mode="telea")
+  ```
+  
+  __*`clip`*__  
+  Clip to be inpainted. Any format.
+  
+  __*`mask`*__  
+  Black and white mask clip where white means inpainting. Can be a single frame long, or longer and different each frame. If too short, the last frame will be looped. Can be any format and doesn't have to match.
+  
+  __*`mode`*__  
+  Inpainting mode can be `telea`, `ns`, `fsr` or `shiftmap`.
 
 ---
 
@@ -318,21 +318,21 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
 ---
 
-* ### TPad
-  Temporally pads (extends) a clip using various padding modes.
+* ### Extend
+  Extends (temporally pads) a clip using various padding modes.
   ```python
   import vs_tiletools
-  clip = vs_tiletools.tpad(clip, start=0, end=0, length=None, mode="mirror")
+  clip = vs_tiletools.extend(clip, start=0, end=0, length=None, mode="mirror")
   ```
   
   __*`clip`*__  
-  Clip to pad. Any format.
+  Clip to extend. Any format.
 
   __*`start`*, *`end`*__  
   Number of frames to add at the start and/or end. Mutually exclusive with `length`. 
 
   __*`length`*__  
-  Pads clip to exactly this many frames. Mutually exclusive with `start`/`end`. 
+  Extends clip to exactly this many frames. Mutually exclusive with `start`/`end`. 
 
   __*`mode`*__  
   Padding mode can be `mirror`, `loop`, `repeat`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
@@ -340,7 +340,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 ---
 
 * ### Trim
-  Automatically trims temporal padding added by `tpad()`. [Example](#filters-with-multiple-input-clips-often-require-both-to-have-the-same-length)
+  Automatically trims temporal padding added by `extend()`. [Example](#filters-with-multiple-input-clips-often-require-both-to-have-the-same-length)
   ```python
   import vs_tiletools
   clip = vs_tiletools.trim(clip) # automatic
@@ -351,10 +351,10 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Temporally padded clip. Any format.
   
   __*`start`*, *`end`* (optional)__  
-  Optional manual number of frames to remove from start and/or end. Mutually exclusive with `length`.
+  Optional manual number of frames to remove from start and/or end. End is mutually exclusive with `length`.
 
   __*`length`* (optional)__  
-  Optional manual trim to exactly this many frames. Mutually exclusive with `start`/`end`.
+  Optional manual trim to exactly this many frames, starting from start. Mutually exclusive with `end`.
 
 ---
 
@@ -421,9 +421,9 @@ Examples of how the paired functions are used together.
 * #### Filters with two input clips often require both to have the same length.
   ```python
   import vs_tiletools
-  clip = vs_tiletools.tpad(clip, length=clip2.num_frames) # pad clip to the length of clip2
-  clip = some.multi_input_filter(clip, clip2)             # filter with multiple inputs
-  clip = vs_tiletools.trim(clip)                          # automatically trims the added frames
+  clip = vs_tiletools.extend(clip, length=clip2.num_frames) # pad clip to the length of clip2
+  clip = some.multi_input_filter(clip, clip2)               # filter with multiple inputs
+  clip = vs_tiletools.trim(clip)                            # automatically trims the added frames
   ```
 
 <br />
