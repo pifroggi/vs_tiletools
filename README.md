@@ -24,7 +24,7 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
   ⚬ [Mod](#mod) - Pads or crops a clip so width and height are multiples of the given modulus  
   ⚬ [Crop](#crop) - Auto crops padded clip from `pad()` or `mod()`, even if resized  
   ⚬ [Croprandom](#croprandom) - Crops to given dimensions, but randomly repositions the window each frame  
-<sub>     *Inpainting/Filling*</sub>  
+<sub>     *Filling/Inpainting*</sub>  
   ⚬ [Fill](#fill) - Fills the borders of a clip with various filling modes  
   ⚬ [Autofill](#autofill) - Auto detects borders and fills them with various fill modes  
   ⚬ [Inpaint](#inpaint) - Inpaints areas based on a mask with various inpainting modes
@@ -32,10 +32,10 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
 <sub>     *Duplicate Detection*</sub>  
   ⚬ [Markdups](#markdups) - Marks identical frames as duplicates, which can later be skipped using `skipdups()`  
   ⚬ [Skipdups](#skipdups) - Skips processing of duplicate frames marked by `markdups()`  
-<sub>     *Windowing*</sub>  
+<sub>     *Temporal Windowing*</sub>  
   ⚬ [Window](#window) - Inserts temporal overlaps a the end of fixed length temporal windows  
   ⚬ [Unwindow](#unwindow) - Auto removes or crossfades overlaps added by `window()`  
-<sub>     *Padding/Trimming*</sub>  
+<sub>     *Extending/Trimming*</sub>  
   ⚬ [Extend](#extend) - Extends a clip with various temporal padding modes  
   ⚬ [Trim](#trim) - Auto trims extended clip from `extend()`  
 <sub>     *Other*</sub>  
