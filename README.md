@@ -418,12 +418,12 @@ Examples of how the paired functions are used together.
   clip = vs_tiletools.unwindow(clip, fade=True)          # uses the overlap to fade between temporal windows
   ```
 
-* #### Filters with two input clips often require both to have the same length.
+* #### Fix filters that behave badly at the start/end of clips.
   ```python
   import vs_tiletools
-  clip = vs_tiletools.extend(clip, length=clip2.num_frames) # pad clip to the length of clip2
-  clip = some.multi_input_filter(clip, clip2)               # filter with multiple inputs
-  clip = vs_tiletools.trim(clip)                            # automatically trims the added frames
+  clip = vs_tiletools.extend(clip, start=10, end=10) # extend clip by 10 frames at the start and end
+  clip = some.temporal_filter(clip)                  # temporal filters can have this issue
+  clip = vs_tiletools.trim(clip)                     # automatically trims the added frames
   ```
 
 <br />
