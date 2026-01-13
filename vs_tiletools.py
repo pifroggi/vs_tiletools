@@ -154,8 +154,9 @@ def _fillborders(clip, left=0, right=0, top=0, bottom=0, mode="mirror", region="
     if clip_format.sample_type == vs.INTEGER and not (broken_fillmargins or broken_fixborders):
         return _fillborders_core(clip, left=left, right=right, top=top, bottom=bottom, mode=mode, pad=region=="pad")
     
-    # if fixborders and RGB, convert to YUV
-    if mode == "fixborders" and clip_format.color_family == vs.RGB:
+    # if fixborders and RGB, convert to YUV and mask later
+    rgb_to_yuv = mode == "fixborders" and clip_format.color_family == vs.RGB
+    if rgb_to_yuv:
         family = vs.YUV
         matrix = {"matrix_s": "709"}
     else:
@@ -167,10 +168,10 @@ def _fillborders(clip, left=0, right=0, top=0, bottom=0, mode="mirror", region="
     clip_fill = core.resize.Point(clip, format=clip_format_int.id, **matrix)
     clip_fill = _fillborders_core(clip_fill, left=left, right=right, top=top, bottom=bottom, mode=mode, pad=region=="pad")
     clip_fill = core.resize.Point(clip_fill, format=clip_format.id)
-    if clip_format.sample_type == vs.INTEGER:  # original was integer, masking to protect inner float values is not needed
+    if clip_format.sample_type == vs.INTEGER and not rgb_to_yuv:  # if original was integer and no rgb to yuv convertion was needed, masking to protect inner values is not needed
         return clip_fill
     
-    # keep original float values inside, use filled border outside
+    # keep original values inside, use filled border outside
     if region == "pad":
         clip = core.std.AddBorders(clip, left=left, right=right, top=top, bottom=bottom)
     mask_format = core.query_video_format(vs.GRAY, clip_format.sample_type, clip_format.bits_per_sample, 0, 0)
@@ -446,8 +447,8 @@ def inpaint(clip, mask, mode="telea"):
 
     Args:
         clip: Clip to be inpainted. Any format.
-        mask: Black and white mask clip where white means inpainting. Can be a single frame, or different each frame.
-            If too short, the last frame will be looped. Can be any format.
+        mask: Black and white mask clip where white means inpainting. Can be a single frame long, or longer and different each
+            frame. If too short, the last frame will be looped. Can be any format and doesn't have to match the base clip.
         mode: Inpainting mode can be `telea`, `ns`, `fsr`, or `shiftmap`.
     """
     if not isinstance(clip, vs.VideoNode):
