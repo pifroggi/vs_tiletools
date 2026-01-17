@@ -76,7 +76,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Overlap from one tile to the next. When overlap is increased the tile size is not altered, so the amount of tiles per frame increases. Can be a single value or a pair for horizontal and vertical `[16, 32]`.
 
   __*`padding`*__  
-  How to handle tiles that are smaller than tile size. These can be padded with modes `mirror`, `wrap`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, or just discarded with `discard`.
+  How to handle tiles that are smaller than tile size. These can be padded with modes `mirror`, `wrap`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, or just discarded with `discard`. For a full explanation of each padding mode, click [here](#mode-explanations).
 
 ---
 
@@ -116,7 +116,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Padding amount in pixel.
   
   __*`mode`*__  
-  Padding mode can be `mirror`, `wrap`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
+  Padding mode can be `mirror`, `wrap`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`. For a full explanation of each mode, click [here](#mode-explanations).
 
 ---
 
@@ -134,7 +134,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Dimensions will be a multiple of this value. Can be a single value, or a pair for width and height `[64, 32]`.
   
   __*`mode`*__  
-  Mode to reach the next upper multiple via padding can be `mirror`, `wrap`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, or `discard` to crop to the next lower multiple.
+  Mode to reach the next upper multiple via padding can be `mirror`, `wrap`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, or `discard` to crop to the next lower multiple. For a full explanation of each padding mode, click [here](#mode-explanations).
 
 ---
 
@@ -186,7 +186,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Fill amount in pixel.
   
   __*`mode`*__  
-  Filling mode can be `mirror`, `wrap`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
+  Filling mode can be `mirror`, `wrap`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`. For a full explanation of each mode, click [here](#mode-explanations).
 
 ---
 
@@ -214,7 +214,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Tolerance to account for fluctuations in border color. Can be a single value or a list `[16, 16, 16]`.
 
   __*`fill`*__  
-  Filling mode can be `mirror`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
+  Filling mode can be `mirror`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`. For a full explanation of each mode, click [here](#mode-explanations).
 
 ---
 
@@ -232,7 +232,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Black and white mask clip where white means inpainting. Can be a single frame long, or longer and different each frame. If too short, the last frame will be looped. Can be any format and doesn't have to match the base clip.
   
   __*`mode`*__  
-  Inpainting mode can be `telea`, `ns`, `fsr` or `shiftmap`.
+  Inpainting mode can be `telea`, `ns`, `fsr` or `shiftmap`. For a full explanation of each mode, click [here](#mode-explanations).
 
 ---
 
@@ -292,7 +292,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Overlap from one window to the next. When overlap is increased, the temporal window length is not altered, so the total amount of windows per clip increases.
 
   __*`padding`*__  
-  How to handle the last window of the clip if it is smaller than length. It can be padded with modes `mirror`, `loop`, `repeat`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, discarded with `discard`, or left as is with `None`.
+  How to handle the last window of the clip if it is smaller than length. It can be padded with modes `mirror`, `loop`, `repeat`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, discarded with `discard`, or left as is with `None`. For a full explanation of each padding mode, click [here](#mode-explanations).
   
 ---
 
@@ -335,7 +335,7 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Extends clip to exactly this many frames. Mutually exclusive with `start`/`end`. 
 
   __*`mode`*__  
-  Padding mode can be `mirror`, `loop`, `repeat`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`.
+  Padding mode can be `mirror`, `loop`, `repeat`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`. For a full explanation of each mode, click [here](#mode-explanations).
 
 ---
 
@@ -435,8 +435,9 @@ Full explanations for all padding/filling/inpainting modes.
   * `mirror` Reflects the image into the padded region.
   * `wrap` Wraps the image around to create a periodic tiling.
   * `repeat` Repeats the outermost pixel row/column.
-  * `fillmargins` Similar to repeat, but the top/bottom padding gets more blurry the further away it is.
-  * `telea` Telea's algorithm. Similar to fillmargins, but all padding gets more blurry the further away it is.
+  * `fillmargins` Similar to repeat, but the top and bottom pad/fill gets more blurry the further away it is.
+  * `fixborders` A direction aware fillmargins that also works on all four sides, not just top and bottom.
+  * `telea` Gets more blurry the further away it is.
   * `ns` Navier-Stokes algorithm. Similar to telea, but less blurry.
   * `fsr` Frequency Selective Reconstructiom algorithm. Better at keeping patterns/textures, but is slow.
   * `shiftmap` Shifts part of the existing image to fill the holes. Only for inpainting.
@@ -455,4 +456,4 @@ Full explanations for all padding/filling/inpainting modes.
 > [!NOTE]
 > The padded/filled/inpainted regions may be generated at a lower bit depth due to plugin limitations (16-bit for fillborders, 8-bit for cv_inpaint), then upsampled and merged onto the original high depth frames. This should usually not be an issue.
 >
-> Padding mode `fixborders` is additionally supported in all functions, if the [fillborders](https://github.com/dubhater/vapoursynth-fillborders) plugin is compiled from source. See [this](https://github.com/dubhater/vapoursynth-fillborders/issues/7) issue. Modes `fillmargins` and `fixborders`, which are partially broken when using the fillborders plugin directly, are also fixed here.
+> Padding mode `fixborders` is additionally supported in all functions, if the [fillborders](https://github.com/dubhater/vapoursynth-fillborders) plugin is compiled from source. See [this](https://github.com/dubhater/vapoursynth-fillborders/issues/7) issue. Modes `fillmargins` and `fixborders`, which are partially broken on some formats when using the fillborders plugin directly, are also fixed here.
