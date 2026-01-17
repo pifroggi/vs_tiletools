@@ -432,17 +432,17 @@ Examples of how the paired functions are used together.
 Full explanations for all padding/filling/inpainting modes.
 
 * __Spatial__
-  * `mirror` Reflects the image into the padded region.
+  * `mirror` Reflects the image into the padded/filled region.
   * `wrap` Wraps the image around to create a periodic tiling.
   * `repeat` Repeats the outermost pixel row/column.
   * `fillmargins` Similar to repeat, but the top and bottom pad/fill gets more blurry the further away it is.
   * `fixborders` A direction aware fillmargins that also works on all four sides, not just top and bottom.
   * `telea` Gets more blurry the further away it is.
   * `ns` Navier-Stokes algorithm. Similar to telea, but less blurry.
-  * `fsr` Frequency Selective Reconstructiom algorithm. Better at keeping patterns/textures, but is slow.
+  * `fsr` Frequency Selective Reconstruction algorithm. Better at keeping patterns/textures, but is slow.
   * `shiftmap` Shifts part of the existing image to fill the holes. Only for inpainting.
-  * `black` Solid black padding.
-  * `[128, 128, 128]` Solid custom color padding. 8-bit values per plane in the clip’s color family.
+  * `black` Solid black.
+  * `[128, 128, 128]` Solid custom color. 8-bit values per plane in the clip’s color family.
 
 * __Temporal__
   * `mirror` Reverses the clip at the start/end.
