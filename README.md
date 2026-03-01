@@ -50,7 +50,7 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
 * [cv_inpaint](https://github.com/dnjulek/VapourSynth-cv_inpaint)
 * [autocrop](https://github.com/Irrational-Encoding-Wizardry/vapoursynth-autocrop) *(optional, only for autofill)*
 * [akarin](https://github.com/Jaded-Encoding-Thaumaturgy/akarin-vapoursynth-plugin) *(optional, only for markdups/skipdups)*
-* [vship](https://github.com/Line-fr/Vship) *(optional, only for markdups/skipdups, requires v4.0.0 or newer)*
+* [libvship](https://codeberg.org/Line-fr/Vship/releases) *(optional, only for markdups/skipdups, requires v4.0.0 or newer)*
 
 ## Setup
 Put the `vs_tiletools.py` file into your vapoursynth scripts folder.  
