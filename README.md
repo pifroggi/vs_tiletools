@@ -33,8 +33,8 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
   ⚬ [Markdups](#markdups) - Marks identical frames as duplicates, which can later be skipped using `skipdups()`  
   ⚬ [Skipdups](#skipdups) - Skips processing of duplicate frames marked by `markdups()`  
 <sub>     *Temporal Windowing*</sub>  
-  ⚬ [Window](#window) - Inserts temporal overlaps a the end of fixed length temporal windows  
-  ⚬ [Unwindow](#unwindow) - Auto removes or crossfades overlaps added by `window()`  
+  ⚬ [Insert Overlaps](#insert-overlaps) - Inserts temporal overlaps a the end of fixed length chunks  
+  ⚬ [Trim Overlaps](#trim-overlaps) - Auto trims or crossfades overlaps added by `insert_overlaps()`  
 <sub>     *Extending/Trimming*</sub>  
   ⚬ [Extend](#extend) - Extends a clip with various temporal padding modes  
   ⚬ [Trim](#trim) - Auto trims extended clip from `extend()`  
@@ -275,18 +275,18 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
 
 ---
 
-* ### Window
-  Inserts temporal overlaps at the end of each temporal window into the clip. That means a window with `length=20` and `overlap=5` will produce a clip with this frame pattern: `0–19`, `15–34`, `30–49`, and so on. In combination with the unwindow function, the overlap can then be used to crossfade between windows and eliminate sudden jumps/hitches that can occur on window based functions like [vs_undistort](https://github.com/pifroggi/vs_undistort). [Example](#fix-jumpshitches-on-temporal-windowchunk-based-filters-via-crossfading)
+* ### Insert Overlaps
+  Inserts temporal overlaps at the end of fixed length chunks/temporal windows into the clip. That means a chunk with `length=20` and `overlap=5` will produce a clip with this frame pattern: `0–19`, `15–34`, `30–49`, and so on. In combination with the `trim_overlaps` function, the overlap can then be used to crossfade between chunks/windows and eliminate sudden jumps/hitches that can occur on chunk/window based functions like [vs_undistort](https://github.com/pifroggi/vs_undistort). [Example](#fix-jumpshitches-on-chunktemporal-window-based-filters-via-crossfading)
   ```python
   import vs_tiletools
-  clip = vs_tiletools.window(clip, length=20, overlap=5, padding="mirror")
+  clip = vs_tiletools.insert_overlaps(clip, length=20, overlap=5, padding="mirror")
   ```
   
   __*`clip`*__  
-  Clip that should be windowed. Any format.
+  Clip that should get overlaps inserted. Any format.
   
   __*`length`*__  
-  Temporal window length.
+  Chunk/temporal window length.
 
   __*`overlap`*__  
   Overlap from one window to the next. When overlap is increased, the temporal window length is not altered, so the total amount of windows per clip increases.
@@ -296,25 +296,25 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   
 ---
 
-* ### Unwindow
-  Automatically removes the overlap added by `window()` and optionally uses it to crossfade between windows. [Example](#fix-jumpshitches-on-temporal-windowchunk-based-filters-via-crossfading)
+* ### Trim Overlaps
+  Automatically removes the overlaps inserted by `insert_overlaps()` and optionally uses them to crossfade between chunks/windows. [Example](#fix-jumpshitches-on-chunktemporal-window-based-filters-via-crossfading)
   ```python
   import vs_tiletools
-  clip = vs_tiletools.unwindow(clip, fade=False) # automatic
-  clip = vs_tiletools.unwindow(clip, fade=False, full_length=None, window_length=None, overlap=None) # manual
+  clip = vs_tiletools.trim_overlaps(clip, fade=False) # automatic
+  clip = vs_tiletools.trim_overlaps(clip, fade=False, full_length=None, window_length=None, overlap=None) # manual
   ```
 
   __*`clip`*__  
-  Windowed clip. Any format.
+  Clip with inserted overlaps. Any format.
   
   __*`fade`*__  
-  If fade is True, the overlap will be used to crossfade between the windows.  
+  If fade is True, the overlap will be used to crossfade between the chunks/windows.  
   If fade is False, the overlap will be trimmed.
 
   __*`full_length`*, *`window_length`*, *`overlap`* (optional)__  
-  You can also enter unwindow parameters manually. Needed is the full clip length, window length and the overlap between windows. In manual mode you have to account for a discarded window yourself.  
-  Tip: If the last window was discarded, the full_length is now smaller and a multiple of window_length.  
-  Tip: If the windowed clip was interpolated to 2x, simply double all values.
+  You can also enter trim_overlaps parameters manually. Needed is the full clip length, window length and the overlap between windows. In manual mode you have to account for a discarded window yourself.  
+  Tip: If the last chunk/window was discarded, the full_length is now smaller and a multiple of window_length.  
+  Tip: If the clip was interpolated to 2x after inserting overlaps, simply double all values.
 
 ---
 
@@ -410,12 +410,12 @@ Examples of how the paired functions are used together.
   clip = vs_tiletools.skipdups(clip)                               # skips duplicates and replaces them with a previous frame
   ```
 
-* #### Fix jumps/hitches on temporal window/chunk based filters via crossfading.
+* #### Fix jumps/hitches on chunk/temporal window based filters via crossfading.
   ```python
   import vs_tiletools
-  clip = vs_tiletools.window(clip, length=10, overlap=4) # creates a temporal overlap of 4 frames
-  clip = vs_undistort.tensorrt(clip, temp_window=10)     # filter has 10 input frames and 10 output frames
-  clip = vs_tiletools.unwindow(clip, fade=True)          # uses the overlap to fade between temporal windows
+  clip = vs_tiletools.insert_overlaps(clip, length=10, overlap=4) # creates a temporal overlap of 4 frames
+  clip = vs_undistort.tensorrt(clip, temp_window=10)              # filter has 10 input frames and 10 output frames
+  clip = vs_tiletools.trim_overlaps(clip, fade=True)              # uses the overlap to fade between chunks/windows
   ```
 
 * #### Fix filters that behave badly at the start/end of clips.
