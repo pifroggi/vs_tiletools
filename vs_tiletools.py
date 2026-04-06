@@ -468,7 +468,8 @@ def inpaint(clip, mask, mode="telea"):
     if mask.format.id != vs.GRAY8:
         mask = core.resize.Point(mask, format=vs.GRAY8, range_s="full")
     else:
-        mask = core.std.SetFrameProps(mask, _ColorRange=vs.RANGE_FULL)
+        range_prop = "_Range" if vs.__version__.release_major >= 74 else "_ColorRange"
+        mask = core.std.SetFrameProps(mask, **{range_prop: vs.RANGE_FULL})
     mask = core.std.BinarizeMask(mask)
     
     # loop last frame or trim to match clip length
@@ -1087,7 +1088,7 @@ def extend(clip, start=0, end=0, length=None, mode="mirror"):
         add_start = int(start)
         add_end   = int(end)
 
-    color_props = ['_Matrix','_Transfer','_Primaries','_ColorRange', '_ChromaLocation','_SARNum','_SARDen','_FieldBased']
+    color_props = ['_Matrix','_Transfer','_Primaries', '_ChromaLocation','_SARNum','_SARDen','_FieldBased', '_Range' if vs.__version__.release_major >= 74 else '_ColorRange']
     prop_key    = "tiletools_extendprops"
     pad_mode    = mode
     out         = clip
@@ -1381,7 +1382,7 @@ def insert_overlaps(clip, length=20, overlap=5, padding="mirror"):
 
 
 def trim_overlaps(clip, fade=False, full_length=None, window_length=None, overlap=None):
-    """Automatically removes the overlaps from a clip iserted by `insert_overlaps()` and optionally uses them to crossfade between chunks/windows.
+    """Automatically removes the overlaps iserted by `insert_overlaps()` and optionally uses them to crossfade between chunks/windows.
 
     Args:
         clip: Clip with inserted overlaps. Any format.
