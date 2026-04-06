@@ -1295,30 +1295,30 @@ def crossfade(clipa, clipb, length=10):
     return core.std.Splice(parts)
 
 
-def window(clip, length=20, overlap=5, padding="mirror"):
-    """Inserts temporal overlaps at the end of each temporal window into the clip. That means a window with 
+def insert_overlaps(clip, length=20, overlap=5, padding="mirror"):
+    """Inserts temporal overlaps at the end of fixed length chunks/temporal windows into the clip. That means a chunk with 
     `length=20` and `overlap=5` will produce a clip with this frame pattern: `0–19`, `15–34`, `30–49`, and so on.
-    In combination with the unwindow function, the overlap can then be used to crossfade between windows and
-    eliminate sudden jumps/seams that can occur on window based functions like https://github.com/pifroggi/vs_undistort.
+    In combination with the `trim_overlaps()` function, the inserted overlaps can then be used to crossfade between chunks and
+    eliminate sudden jumps/seams that can occur on chunk/window based functions like https://github.com/pifroggi/vs_undistort.
 
     Args:
-        clip: Clip that should be windowed. Any format.
-        length: Temporal window length.
-        overlap: Overlap from one window to the next. When overlap is increased, the temporal window length is not
-            altered, so the total amount of windows per clip increases.
-        padding: How to handle the last window of the clip if it is smaller than length. It can be padded with modes `mirror`,
+        clip: Clip that should get overlaps inserted. Any format.
+        length: Chunk/temporal window length.
+        overlap: Overlap from one chunk to the next. When overlap is increased, the chunk length is not
+            altered, that means the total amount of chunks per clip increases.
+        padding: How to handle the last chunk of the clip if it is smaller than length. It can be padded with modes `mirror`,
             `repeat`, `loop`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, discarded with `discard`, or left as is with `None`.
     """
     
     # checks
     if not isinstance(clip, vs.VideoNode):
-        raise TypeError("vs_tiletools.window: Clip must be a vapoursynth clip.")
+        raise TypeError("vs_tiletools.insert_overlaps: Clip must be a vapoursynth clip.")
     if clip.format.id == vs.PresetVideoFormat.NONE or clip.width == 0 or clip.height == 0:
-        raise TypeError("vs_tiletools.window: Clip must have constant format and dimensions.")
+        raise TypeError("vs_tiletools.insert_overlaps: Clip must have constant format and dimensions.")
     if length < 1:
-        raise ValueError("vs_tiletools.window: Temporal window length must be at least 1.")
+        raise ValueError("vs_tiletools.insert_overlaps: Chunk/temporal window length must be at least 1.")
     if overlap < 0 or overlap >= length:
-        raise ValueError("vs_tiletools.window: Overlap can not be negative and smaller than length.")
+        raise ValueError("vs_tiletools.insert_overlaps: Overlap can not be negative or smaller than length.")
 
     num_frames  = clip.num_frames
     stride      = length - overlap
@@ -1349,7 +1349,7 @@ def window(clip, length=20, overlap=5, padding="mirror"):
                 padded_window = core.std.CopyFrameProps(padded_window, window_clip)  # copy previous extend props in case extend was used already
 
             else:
-                raise ValueError("vs_tiletools.window: Padding must be 'mirror', 'loop', 'repeat', 'black', or a custom color like [128, 128, 128].")
+                raise ValueError("vs_tiletools.insert_overlaps: Padding must be 'mirror', 'loop', 'repeat', 'black', or a custom color like [128, 128, 128].")
         
         else:
             padded_window = window_clip
@@ -1369,7 +1369,7 @@ def window(clip, length=20, overlap=5, padding="mirror"):
     else:
         pad_tag = "none"
 
-    prop_key = "tiletools_windowprops"
+    prop_key = "tiletools_overlapprops"
     cfg = dict(
         orig_length=int(num_frames),
         window_length=int(length),
@@ -1380,33 +1380,33 @@ def window(clip, length=20, overlap=5, padding="mirror"):
     return core.std.SetFrameProp(out, prop=prop_key, data=[cfg_str])
 
 
-def unwindow(clip, fade=False, full_length=None, window_length=None, overlap=None):
-    """Automatically removes the overlap from a clip from `window()` and optionally uses it to crossfade between windows.
+def trim_overlaps(clip, fade=False, full_length=None, window_length=None, overlap=None):
+    """Automatically removes the overlaps from a clip iserted by `insert_overlaps()` and optionally uses them to crossfade between chunks/windows.
 
     Args:
-        clip: Windowed clip. Any format.
+        clip: Clip with inserted overlaps. Any format.
         fade: If False, trim overlaps. If True, crossfade across overlaps.
         full_length: Manual mode: Full clip length without overlaps. `None` means auto-detect.
-        window_length: Manual mode: Length of one temporal window. `None` means auto-detect.
-        overlap: Manual mode: Overlap between temporal windows. `None` means auto-detect.
+        window_length: Manual mode: Length of one chunk/temporal window. `None` means auto-detect.
+        overlap: Manual mode: Overlap between chunks/temporal windows. `None` means auto-detect.
         
             Manual mode is enabled if you provide any of `full_length`, `window_length`, or `overlap`. In manual mode you have
             to account for a discarded window yourself.  
-            Tip: If the last window was discarded, the `full_length` is now smaller and a multiple of `window_length`.  
-            Tip: If the windowed clip was interpolated to 2x, simply double all values.
+            Tip: If the last chunk/window was discarded, the `full_length` is now smaller and a multiple of `window_length`.  
+            Tip: If the clip was interpolated to 2x after inserting overlaps, simply double all values.
     """
     
     # checks
     if not isinstance(clip, vs.VideoNode):
-        raise TypeError("vs_tiletools.unwindow: Clip must be a vapoursynth clip.")
+        raise TypeError("vs_tiletools.trim_overlaps: Clip must be a vapoursynth clip.")
     if clip.format.id == vs.PresetVideoFormat.NONE or clip.width == 0 or clip.height == 0:
-        raise TypeError("vs_tiletools.unwindow: Clip must have constant format and dimensions.")
+        raise TypeError("vs_tiletools.trim_overlaps: Clip must have constant format and dimensions.")
 
     # decide mode
-    prop_key = "tiletools_windowprops"
+    prop_key = "tiletools_overlapprops"
     manual   = any(x is not None for x in (full_length, window_length, overlap))
     if manual and not all(x is not None for x in (full_length, window_length, overlap)):
-        raise ValueError("vs_tiletools.unwindow: In manual mode 'full_length', 'window_length', and 'overlap' are used together. Provide all or none to read them from the frame props.")
+        raise ValueError("vs_tiletools.trim_overlaps: In manual mode 'full_length', 'window_length', and 'overlap' are used together. Provide all or none to read them from the frame props.")
 
     if manual:
         original_length = int(full_length)
@@ -1414,15 +1414,15 @@ def unwindow(clip, fade=False, full_length=None, window_length=None, overlap=Non
         overlap         = int(overlap)
 
         if window_length < 1:
-            raise ValueError("vs_tiletools.unwindow: Window length must be at least 1.")
+            raise ValueError("vs_tiletools.trim_overlaps: Window length must be at least 1.")
         if overlap < 0 or overlap >= window_length:
-            raise ValueError("vs_tiletools.unwindow: Overlap can not be negative and must be smaller than window length.")
+            raise ValueError("vs_tiletools.trim_overlaps: Overlap can not be negative and must be smaller than window length.")
 
     else:
         # get stored window props
         f0 = clip.get_frame(0)
         if prop_key not in f0.props:
-            raise KeyError("vs_tiletools.unwindow: Clip has no temporal window props. Did you pass the right clip? Were some frame props deleted? You can also provide them manually.")
+            raise KeyError("vs_tiletools.trim_overlaps: Clip has no overlap props. Did you pass the right clip? Were some frame props deleted? You can also provide them manually.")
 
         # stored window props
         raw = f0.props[prop_key]
