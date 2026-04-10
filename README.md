@@ -46,7 +46,7 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
 <br />
 
 ## Requirements
-* [fillborders](https://github.com/dubhater/vapoursynth-fillborders)
+* [fillborders](https://github.com/dubhater/vapoursynth-fillborders) *(pad mode fixborders needs v3 or newer)*
 * [cv_inpaint](https://github.com/dnjulek/VapourSynth-cv_inpaint)
 * [autocrop](https://github.com/Irrational-Encoding-Wizardry/vapoursynth-autocrop) *(optional, only for autofill)*
 * [akarin](https://github.com/Jaded-Encoding-Thaumaturgy/akarin-vapoursynth-plugin) *(optional, only for markdups/skipdups)*
@@ -456,4 +456,4 @@ Full explanations for all padding/filling/inpainting modes.
 > [!NOTE]
 > The padded/filled/inpainted regions may be generated at a lower bit depth due to plugin limitations (16-bit for fillborders, 8-bit for cv_inpaint), then upsampled and merged onto the original high depth frames. This should usually not be an issue.
 >
-> Padding mode `fixborders` is additionally supported in all functions, if the [fillborders](https://github.com/dubhater/vapoursynth-fillborders) plugin is compiled from source. See [this](https://github.com/dubhater/vapoursynth-fillborders/issues/7) issue. Modes `fillmargins` and `fixborders`, which are partially broken on some formats when using the fillborders plugin directly, are also fixed here.
+> Modes `fillmargins` and `fixborders`, which are partially broken on some formats when using the fillborders plugin directly, are also fixed here.
