@@ -259,7 +259,7 @@ def pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
         right: Right padding amount in pixels.
         top: Top padding amount in pixels.
         bottom: Bottom padding amount in pixels.
-        mode: Padding mode can be `mirror`, `wrap`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color
+        mode: Padding mode can be `mirror`, `wrap`, `repeat`, `fillmargins`, `fixborders`, `telea`, `ns`, `fsr`, `black`, or a custom color
             in 8-bit scale `[128, 128, 128]`.
     """
     if not isinstance(clip, vs.VideoNode):
@@ -304,7 +304,7 @@ def pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
     else:
         color = _normalize_color(mode, clip_format, "pad")
         if color is False:
-            raise TypeError("vs_tiletools.pad: Mode must be 'mirror', 'wrap', 'repeat', 'fillmargins', 'telea', 'ns', 'fsr', 'black', or custom color values [128, 128, 128].")
+            raise TypeError("vs_tiletools.pad: Mode must be 'mirror', 'wrap', 'repeat', 'fillmargins', 'fixborders', 'telea', 'ns', 'fsr', 'black', or custom color values [128, 128, 128].")
         out = core.std.AddBorders(clip, left=left, right=right, top=top, bottom=bottom, color=color)
 
     # pad props for auto crop
@@ -398,7 +398,7 @@ def mod(clip, modulus=64, mode="mirror"):
     Args:
         clip: Source clip. Any format.
         modulus: Dimensions will be a multiple of this value. Can be a single value, or a pair for width and height `[64, 32]`.
-        mode: Mode to reach the next upper multiple via padding can be `mirror`, `wrap`, `repeat`, `fillmargins`, `telea`, `ns`,
+        mode: Mode to reach the next upper multiple via padding can be `mirror`, `wrap`, `repeat`, `fillmargins`, `fixborders`, `telea`, `ns`,
             `fsr`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, or `discard` to crop to the next lower multiple.
     """
     if not isinstance(clip, vs.VideoNode):
@@ -434,7 +434,7 @@ def mod(clip, modulus=64, mode="mirror"):
 
     # check if pad mode is valid
     if not ((isinstance(mode, str) and (mode in fb_modes or mode in cv_modes or mode == "wrap")) or (_normalize_color(mode, clip_format, "mod") is not False)):
-        raise TypeError("vs_tiletools.mod: Mode must be 'mirror', 'wrap', 'repeat', 'fillmargins', 'telea', 'ns', 'fsr', 'black', custom color values [128, 128, 128], or 'discard'.")
+        raise TypeError("vs_tiletools.mod: Mode must be 'mirror', 'wrap', 'repeat', 'fillmargins', 'fixborders', 'telea', 'ns', 'fsr', 'black', custom color values [128, 128, 128], or 'discard'.")
 
     # pad to next upper multiple
     pad_w  = (-width)  % mod_w
@@ -498,7 +498,7 @@ def fill(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
         right: Right fill amount in pixels.
         top: Top fill amount in pixels.
         bottom: Bottom fill amount in pixels.
-        mode: Filling mode can be `mirror`, `wrap`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color
+        mode: Filling mode can be `mirror`, `wrap`, `repeat`, `fillmargins`, `fixborders`, `telea`, `ns`, `fsr`, `black`, or a custom color
             in 8-bit scale `[128, 128, 128]`.
     """
     if not isinstance(clip, vs.VideoNode):
@@ -545,7 +545,7 @@ def fill(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
     # solid color
     color = _normalize_color(mode, clip_format, "fill")
     if color is False:
-        raise TypeError("vs_tiletools.fill: Mode must be 'mirror', 'wrap', 'repeat', 'fillmargins', 'telea', 'ns', 'fsr', 'black', or custom color values [128, 128, 128].")
+        raise TypeError("vs_tiletools.fill: Mode must be 'mirror', 'wrap', 'repeat', 'fillmargins', 'fixborders', 'telea', 'ns', 'fsr', 'black', or custom color values [128, 128, 128].")
     clip = core.std.Crop(clip, left=left, right=right, top=top, bottom=bottom)
     return core.std.AddBorders(clip, left=left, right=right, top=top, bottom=bottom, color=color)
 
@@ -563,7 +563,7 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
             Does not offset sides that have detected 0 pixels.
         color: Source clip border color in 8-bit scale `[16, 128, 128]`.
         tol: Tolerance to account for fluctuations in border color. Can be a single value or a list `[16, 16, 16]`.
-        fill: Filling mode can be `mirror`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color
+        fill: Filling mode can be `mirror`, `repeat`, `fillmargins`, `fixborders`, `telea`, `ns`, `fsr`, `black`, or a custom color
             in 8-bit scale `[128, 128, 128]`.
     """
     
@@ -628,7 +628,7 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
     if not fb and not cv:
         fill_color = _normalize_color(fill, clip.format, "autofill")
         if fill_color is False:
-            raise TypeError("vs_tiletools.autofill: Fill must be 'mirror', 'repeat', 'fillmargins', 'telea', 'ns', 'fsr', 'black', or custom color values [128, 128, 128].")
+            raise TypeError("vs_tiletools.autofill: Fill must be 'mirror', 'repeat', 'fillmargins', 'fixborders', 'telea', 'ns', 'fsr', 'black', or custom color values [128, 128, 128].")
 
     def _fill(n, f):
         # get values
@@ -717,7 +717,7 @@ def tile(clip, width=256, height=256, overlap=16, padding="mirror"):
         overlap: Overlap from one tile to the next. When overlap is increased the tile size is not altered, so the amount
             of tiles per frame increases. Can be a single value or a pair for vertical and horizontal `[16, 32]`.
         padding: How to handle tiles that are smaller than tile size.  These can be padded with modes `mirror`, `wrap`,
-            `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, a custom color in 8 bit scale `[128, 128, 128]`, or just
+            `repeat`, `fillmargins`, `fixborders`, `telea`, `ns`, `fsr`, `black`, a custom color in 8 bit scale `[128, 128, 128]`, or just
             discarded with `discard`.
     """
     
@@ -772,7 +772,7 @@ def tile(clip, width=256, height=256, overlap=16, padding="mirror"):
         clip        = clip if (crop_r == 0 and crop_b == 0) else core.std.Crop(clip, right=crop_r, bottom=crop_b)
     else:
         if not ((isinstance(padding, str) and (padding in fb_modes or padding in cv_modes or padding == "wrap" or padding == "black")) or isinstance(padding, (Real, list, tuple))):
-            raise TypeError("vs_tiletools.tile: Padding must be 'mirror', 'wrap', 'repeat', 'fillmargins', 'telea', 'ns', 'fsr', 'discard', 'black', or color values [128, 128, 128].")
+            raise TypeError("vs_tiletools.tile: Padding must be 'mirror', 'wrap', 'repeat', 'fillmargins', 'fixborders', 'telea', 'ns', 'fsr', 'discard', 'black', or color values [128, 128, 128].")
     
         # pad tiles that are smaller than tile size
         tiles_x          = 1 + (0 if orig_width  <= width  else (orig_width  - width  + stride_x - 1) // stride_x)
