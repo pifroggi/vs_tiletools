@@ -15,6 +15,7 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
 ## Table of Contents
 * [Requirements](#requirements)
 * [Setup](#setup)
+* [Usage Examples](#usage-examples)
 * [Spatial Functions](#spatial-functions)  
 <sub>     *Tiling*</sub>  
   ⚬ [Tile](#tile) - Splits each frame into tiles of fixed dimensions  
@@ -40,7 +41,6 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
   ⚬ [Trim](#trim) - Auto trims extended clip from `extend()`  
 <sub>     *Other*</sub>  
   ⚬ [Crossfade](#crossfade) - Crossfades between two clips
-* [Usage Examples](#usage-examples)
 * [Mode Explanations](#mode-explanations)
 
 <br />
@@ -55,6 +55,59 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
 ## Setup
 Put the `vs_tiletools.py` file into your vapoursynth scripts folder.  
 Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools.git`
+
+<br />
+
+## Usage Examples
+Examples of how the paired functions can be used together.
+
+* #### Reduce VRAM usage on heavy AI models via tiling.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.tile(clip, width=256, height=256, overlap=16) # splits frames into 256x256 tiles with an overlap of 16
+  clip = core.trt.Model(clip, engine_path="2x_heavy_model.engine")  # heavy AI upscale model
+  clip = vs_tiletools.untile(clip, fade=True)                       # reassembles the tiles and uses the overlap to feather
+  ```
+
+* #### Fix issues around borders with some filters via padding.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.pad(clip, left=8, right=8, top=8, bottom=8) # pad 8 pixels on all sides
+  clip = core.trt.Model(clip, engine_path="model.engine")         # AI model with issues near borders
+  clip = vs_tiletools.crop(clip)                                  # automatically crop the padding
+  ```
+
+* #### Fix filters that require the input to be divisible by a factor via padding.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.mod(clip, modulus=16)                      # pad to make width and height divisible by 16
+  clip = core.trt.Model(clip, engine_path="2x_DAT_model.engine") # DAT and HAT based AI models have this constraint
+  clip = vs_tiletools.crop(clip)                                 # automatically crop the padding
+  ```
+
+* #### Skip heavy filters on duplicate frames. Most useful for anime.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.markdups(clip, thresh=0.3)                   # marks duplicate frames with a low threshhold
+  clip = core.trt.Model(clip, engine_path="2x_heavy_model.engine") # heavy AI upscale model
+  clip = vs_tiletools.skipdups(clip)                               # skips duplicates and replaces them with a previous frame
+  ```
+
+* #### Fix jumps/hitches on chunk/temporal window based filters via crossfading.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.insert_overlaps(clip, length=10, overlap=4) # creates a temporal overlap of 4 frames
+  clip = vs_undistort.tensorrt(clip, temp_window=10)              # filter has 10 input frames and 10 output frames
+  clip = vs_tiletools.trim_overlaps(clip, fade=True)              # uses the overlap to fade between chunks/windows
+  ```
+
+* #### Fix filters that behave badly at the start/end of clips.
+  ```python
+  import vs_tiletools
+  clip = vs_tiletools.extend(clip, start=10, end=10) # extend clip by 10 frames at the start and end
+  clip = some.temporal_filter(clip)                  # temporal filters can have this issue
+  clip = vs_tiletools.trim(clip)                     # automatically trims the added frames
+  ```
 
 <br />
 
@@ -372,59 +425,6 @@ Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools
   Length of the crossfade. For example `length=10` will fade the last 10 frames of clipa into the first 10 frames of clipb.
 
 ---
-
-<br />
-
-## Usage Examples
-Examples of how the paired functions are used together.
-
-* #### Reduce VRAM usage on heavy AI models via tiling.
-  ```python
-  import vs_tiletools
-  clip = vs_tiletools.tile(clip, width=256, height=256, overlap=16) # splits frames into 256x256 tiles with an overlap of 16
-  clip = core.trt.Model(clip, engine_path="2x_heavy_model.engine")  # heavy AI upscale model
-  clip = vs_tiletools.untile(clip, fade=True)                       # reassembles the tiles and uses the overlap to feather
-  ```
-
-* #### Fix issues around borders with some filters via padding.
-  ```python
-  import vs_tiletools
-  clip = vs_tiletools.pad(clip, left=8, right=8, top=8, bottom=8) # pad 8 pixels on all sides
-  clip = core.trt.Model(clip, engine_path="model.engine")         # AI model with issues near borders
-  clip = vs_tiletools.crop(clip)                                  # automatically crop the padding
-  ```
-
-* #### Fix filters that require the input to be divisible by a factor via padding.
-  ```python
-  import vs_tiletools
-  clip = vs_tiletools.mod(clip, modulus=16)                      # pad to make width and height divisible by 16
-  clip = core.trt.Model(clip, engine_path="2x_DAT_model.engine") # DAT and HAT based AI models have this constraint
-  clip = vs_tiletools.crop(clip)                                 # automatically crop the padding
-  ```
-
-* #### Skip heavy filters on duplicate frames. Most useful for anime.
-  ```python
-  import vs_tiletools
-  clip = vs_tiletools.markdups(clip, thresh=0.3)                   # marks duplicate frames with a low threshhold
-  clip = core.trt.Model(clip, engine_path="2x_heavy_model.engine") # heavy AI upscale model
-  clip = vs_tiletools.skipdups(clip)                               # skips duplicates and replaces them with a previous frame
-  ```
-
-* #### Fix jumps/hitches on chunk/temporal window based filters via crossfading.
-  ```python
-  import vs_tiletools
-  clip = vs_tiletools.insert_overlaps(clip, length=10, overlap=4) # creates a temporal overlap of 4 frames
-  clip = vs_undistort.tensorrt(clip, temp_window=10)              # filter has 10 input frames and 10 output frames
-  clip = vs_tiletools.trim_overlaps(clip, fade=True)              # uses the overlap to fade between chunks/windows
-  ```
-
-* #### Fix filters that behave badly at the start/end of clips.
-  ```python
-  import vs_tiletools
-  clip = vs_tiletools.extend(clip, start=10, end=10) # extend clip by 10 frames at the start and end
-  clip = some.temporal_filter(clip)                  # temporal filters can have this issue
-  clip = vs_tiletools.trim(clip)                     # automatically trims the added frames
-  ```
 
 <br />
 
