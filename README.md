@@ -33,7 +33,7 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
 <sub>     *Duplicate Detection*</sub>  
   ⚬ [Markdups](#markdups) - Marks identical frames as duplicates, which can later be skipped using `skipdups()`  
   ⚬ [Skipdups](#skipdups) - Skips processing of duplicate frames marked by `markdups()`  
-<sub>     *Temporal Windowing*</sub>  
+<sub>     *Overlapping*</sub>  
   ⚬ [Insert Overlaps](#insert-overlaps) - Inserts temporal overlaps a the end of fixed length chunks  
   ⚬ [Trim Overlaps](#trim-overlaps) - Auto trims or crossfades overlaps added by `insert_overlaps()`  
 <sub>     *Extending/Trimming*</sub>  
