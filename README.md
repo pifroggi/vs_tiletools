@@ -34,7 +34,7 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
   ⚬ [Markdups](#markdups) - Marks identical frames as duplicates, which can later be skipped using `skipdups()`  
   ⚬ [Skipdups](#skipdups) - Skips processing of duplicate frames marked by `markdups()`  
 <sub>     *Overlapping*</sub>  
-  ⚬ [Insert Overlaps](#insert-overlaps) - Inserts temporal overlaps a the end of fixed length chunks  
+  ⚬ [Insert Overlaps](#insert-overlaps) - Inserts temporal overlaps at fixed intervals  
   ⚬ [Trim Overlaps](#trim-overlaps) - Auto trims or crossfades overlaps added by `insert_overlaps()`  
 <sub>     *Extending/Trimming*</sub>  
   ⚬ [Extend](#extend) - Extends a clip with various temporal padding modes  
@@ -329,7 +329,7 @@ Examples of how the paired functions can be used together.
 ---
 
 * ### Insert Overlaps
-  Inserts temporal overlaps at the end of fixed length chunks/temporal windows into the clip. That means a chunk with `length=20` and `overlap=5` will produce a clip with this frame pattern: `0–19`, `15–34`, `30–49`, and so on. In combination with the `trim_overlaps` function, the overlap can then be used to crossfade between chunks/windows and eliminate sudden jumps/hitches that can occur on chunk/window based functions like [vs_undistort](https://github.com/pifroggi/vs_undistort). [Example](#fix-jumpshitches-on-chunktemporal-window-based-filters-via-crossfading)
+  Inserts temporal overlaps at fixed intervals into the clip. That means a chunk with `length=20` and `overlap=5` will produce a clip with this frame pattern: `0–19`, `15–34`, `30–49`, and so on. In combination with the `trim_overlaps` function, the overlap can then be used to crossfade between chunks/windows and eliminate sudden jumps/hitches that can occur on chunk/window based functions like [vs_undistort](https://github.com/pifroggi/vs_undistort). [Example](#fix-jumpshitches-on-chunktemporal-window-based-filters-via-crossfading)
   ```python
   import vs_tiletools
   clip = vs_tiletools.insert_overlaps(clip, length=20, overlap=5, padding="mirror")
