@@ -304,6 +304,8 @@ def _extend_core(clip, start=0, end=0, length=None, mode="mirror", write_props=F
         raise ValueError("vs_tiletools.extend: Use either start and end to add that number of frames, or length to pad to an absolute length.")
     if length is not None and length < 1:
         raise ValueError("vs_tiletools.extend: Length must be at least 1.")
+    if length is not None and length < clip.num_frames:
+        raise ValueError("vs_tiletools.extend: Length can not be shorter than the input clip.")
     if start < 0 or end < 0:
         raise ValueError("vs_tiletools.extend: Start or end can not be negative.")
 
@@ -534,6 +536,9 @@ def mod(clip, modulus=64, mode="mirror"):
 
     # crop to next lower multiple
     if isinstance(mode, str) and mode == "discard":
+        if width < mod_w or height < mod_h:
+            raise ValueError("vs_tiletools.mod: In discard mode, modulus can not be larger than frame dimensions.")
+        
         crop_r = width  % mod_w
         crop_b = height % mod_h
         if not any((crop_r, crop_b)):
@@ -1273,8 +1278,11 @@ def crossfade(clipa, clipb, length=10):
         raise TypeError("vs_tiletools.crossfade: Second input clip must have constant format and dimensions.")
     if clipa.format.id != clipb.format.id or clipa.width != clipb.width or clipa.height != clipb.height:
         raise ValueError("vs_tiletools.crossfade: Both clips must have the same format and dimensions.")
+    if length > min(clipa.num_frames, clipb.num_frames):
+        raise ValueError("vs_tiletools.crossfade: Length can not be larger than the shorter clip.")
     if length <= 0:
         return core.std.Splice([clipa, clipb])
+
 
     a_tail = clipa[-length:]
     b_head = clipb[:length]
@@ -1334,6 +1342,10 @@ def insert_overlaps(clip, length=20, overlap=5, padding="mirror"):
         raise ValueError("vs_tiletools.insert_overlaps: Chunk/temporal window length must be at least 1.")
     if overlap < 0 or overlap >= length:
         raise ValueError("vs_tiletools.insert_overlaps: Overlap can not be negative or smaller than length.")
+    if window < 1:
+        raise ValueError("vs_tiletools.insert_overlaps: Length must be at least 1.")
+    if clip.num_frames < window:
+        raise ValueError(f"vs_tiletools.insert_overlaps: Length must be longer than the clip length.")
 
     num_frames  = clip.num_frames
     stride      = length - overlap
