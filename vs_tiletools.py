@@ -57,6 +57,8 @@ def _normalize_color(mode, clip_format, function_name):
         dst_max = (1 << clip_format.bits_per_sample) - 1
         return [int(round(v * dst_max / 255.0)) for v in raw_vals]
     if sample_type == vs.FLOAT:
+        if clip_format.color_family == vs.YUV:
+            return [raw_vals[0] / 255.0, *[(v - 128.0) / 256.0 for v in raw_vals[1:]]]
         return [v / 255.0 for v in raw_vals]
     
     # return false if not a color
