@@ -242,7 +242,7 @@ def _cv_inpaint(clip, left=0, right=0, top=0, bottom=0, mode="telea", region="pa
     
     # convert back
     if clip_format.color_family == vs.YUV:
-        clip_inpaint = core.resize.Bilinear(clip_inpaint, format=clip_format.id, matrix_s="709")
+        clip_inpaint = core.resize.Bilinear(clip_inpaint, format=clip_format.id, matrix_s="709")  # output props are from base clip to fixed matrix is okay here
     else:
         clip_inpaint = core.resize.Bilinear(clip_inpaint, format=clip_format.id)
     
@@ -1342,12 +1342,10 @@ def insert_overlaps(clip, length=20, overlap=5, padding="mirror"):
         raise TypeError("vs_tiletools.insert_overlaps: Clip must have constant format and dimensions.")
     if length < 1:
         raise ValueError("vs_tiletools.insert_overlaps: Chunk/temporal window length must be at least 1.")
+    if clip.num_frames < length:
+        raise ValueError(f"vs_tiletools.insert_overlaps: Chunk/temporal window length must be longer than clip length.")
     if overlap < 0 or overlap >= length:
         raise ValueError("vs_tiletools.insert_overlaps: Overlap can not be negative or smaller than length.")
-    if window < 1:
-        raise ValueError("vs_tiletools.insert_overlaps: Length must be at least 1.")
-    if clip.num_frames < window:
-        raise ValueError(f"vs_tiletools.insert_overlaps: Length must be longer than the clip length.")
 
     num_frames  = clip.num_frames
     stride      = length - overlap
