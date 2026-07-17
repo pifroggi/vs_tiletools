@@ -893,7 +893,7 @@ def tile(clip, width=256, height=256, overlap=16, padding="mirror"):
         pad_r            = assembled_width  - orig_width
         pad_b            = assembled_height - orig_height
         if pad_r or pad_b:
-            padded = _pad_core(clip, right=pad_r, bottom=pad_b, mode=padding, write_props=False)
+            clip = _pad_core(clip, right=pad_r, bottom=pad_b, mode=padding, write_props=False)
 
     # create tiles via cropping in row-major order
     tiles = []
