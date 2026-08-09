@@ -386,7 +386,7 @@ Examples of how the paired functions can be used together.
 ---
 
 * ### Trim
-  Automatically trims temporal padding added by `extend()`. [Example](#filters-with-multiple-input-clips-often-require-both-to-have-the-same-length)
+  Automatically trims temporal padding added by `extend()`. [Example](#fix-filters-that-behave-badly-at-the-startend-of-clips)
   ```python
   import vs_tiletools
   clip = vs_tiletools.trim(clip) # automatic
