@@ -242,7 +242,7 @@ def _cv_inpaint(clip, left=0, right=0, top=0, bottom=0, mode="telea", region="pa
     
     # convert back
     if clip_format.color_family == vs.YUV:
-        clip_inpaint = core.resize.Bilinear(clip_inpaint, format=clip_format.id, matrix_s="709")  # output props are from base clip to fixed matrix is okay here
+        clip_inpaint = core.resize.Bilinear(clip_inpaint, format=clip_format.id, matrix_s="709")  # output props are from base clip so fixed matrix is okay here
     else:
         clip_inpaint = core.resize.Bilinear(clip_inpaint, format=clip_format.id)
     
@@ -665,7 +665,7 @@ def fill(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
     return core.std.AddBorders(clip, left=left, right=right, top=top, bottom=bottom, color=color)
 
 
-def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 128], tol=16, fill="mirror"):
+def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[0, 128, 128], tol=24, fill="mirror"):
     """Detects uniform colored borders (like letterboxes/pillarboxes) and fills them with various filling modes.
 
     Args:
@@ -676,8 +676,8 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16, 128, 1
         bottom: Maximum bottom border fill amount in pixels.
         offset: Offsets the detected fill area by an extra amount in pixels. Useful if the borders are slightly blurry.
             Does not offset sides that have detected 0 pixels.
-        color: Source clip border color in 8-bit scale `[16, 128, 128]`.
-        tol: Tolerance to account for fluctuations in border color. Can be a single value or a list `[16, 16, 16]`.
+        color: Source clip border color in 8-bit scale `[0, 128, 128]`.
+        tol: Tolerance to account for fluctuations in border color. Can be a single value or a list `[24, 24, 24]`.
         fill: Filling mode can be `mirror`, `repeat`, `fillmargins`, `fixborders`, `telea`, `ns`, `fsr`, `black`, or a custom color
             in 8-bit scale `[128, 128, 128]`.
     """
