@@ -1,20 +1,15 @@
 
-# Tiling and Padding functions for VapourSynth
-A collection of spatial and temporal tiling and padding utilities for VapourSynth. The original idea was just a tiling function to make AI filters less VRAM-hungry and to provide additional options that built-in solutions might not. Over time, more related functions were added.
-
-The functions often come in pairs, with one doing a thing and the other inversing it. For example:
-```python
-import vs_tiletools
-clip = vs_tiletools.tile(clip, width=256, height=256) # splits frames into 256x256 tiles
-clip = core.someheavyfilter.AIUpscale(clip)           # placeholder resource intensive filter
-clip = vs_tiletools.untile(clip)                      # reassembles the tiles into full frames
-```
+# Tiling and Padding Tools for VapourSynth
+A collection of spatial and temporal tiling and padding utilities for VapourSynth. The original idea was just a tiling function with more features than built-in solutions offer. Over time, more related functions were added. The functions often come in pairs, with one doing a thing and the other inverting it. See [Usage Examples](#usage-examples).
 
 <br />
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/pifroggi/vs_tiletools/refs/heads/main/README_img.png" width="600" />
+</p>
+
 ## Table of Contents
-* [Requirements](#requirements)
-* [Setup](#setup)
+* [Installation](#installation)
 * [Usage Examples](#usage-examples)
 * [Spatial Functions](#spatial-functions)  
 <sub>     *Tiling*</sub>  
@@ -45,16 +40,14 @@ clip = vs_tiletools.untile(clip)                      # reassembles the tiles in
 
 <br />
 
-## Requirements
-* [fillborders](https://github.com/dubhater/vapoursynth-fillborders) *(pad mode fixborders needs v3 or newer)*
-* [cv_inpaint](https://github.com/dnjulek/VapourSynth-cv_inpaint)
-* [autocrop](https://github.com/Irrational-Encoding-Wizardry/vapoursynth-autocrop) *(optional, only for autofill)*
-* [akarin](https://github.com/Jaded-Encoding-Thaumaturgy/akarin-vapoursynth-plugin) *(optional, only for markdups/skipdups)*
-* [libvship](https://codeberg.org/Line-fr/Vship/releases) *(optional, only for markdups/skipdups, requires v4.0.0 or newer)*
+## Installation
 
-## Setup
-Put the `vs_tiletools.py` file into your vapoursynth scripts folder.  
-Or install via pip: `pip install -U git+https://github.com/pifroggi/vs_tiletools.git`
+```
+pip install -U vs_tiletools
+```
+* Some Padding/Filling/Inpainting modes require installing [cv_inpaint](https://github.com/dnjulek/VapourSynth-cv_inpaint) *(optional)*.
+* Function Autofill requires installing [autocrop](https://github.com/Irrational-Encoding-Wizardry/vapoursynth-autocrop) *(optional)*.
+* Functions Markdups/Skipdups require installing [libvship](https://codeberg.org/Line-fr/Vship/releases) *(optional, v4.0.0 or newer)*.
 
 <br />
 
@@ -247,7 +240,7 @@ Examples of how the paired functions can be used together.
   Detects uniform colored borders (like letterboxes/pillarboxes) and fills them with various filling modes.
   ```python
   import vs_tiletools
-  clip = vs_tiletools.autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[16,128,128], tol=16, fill="mirror")
+  clip = vs_tiletools.autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[0,128,128], tol=24, fill="mirror")
   ```
   
   __*`clip`*__  
@@ -261,10 +254,10 @@ Examples of how the paired functions can be used together.
   Does not offset sides that have detected 0 pixels.
 
   __*`color`*__  
-  Source clip border color in 8-bit scale `[16, 128, 128]`.
+  Source clip border color in 8-bit scale `[0, 128, 128]`.
 
   __*`tol`*__  
-  Tolerance to account for fluctuations in border color. Can be a single value or a list `[16, 16, 16]`.
+  Tolerance to account for fluctuations in border color. Can be a single value or a list `[24, 24, 24]`.
 
   __*`fill`*__  
   Filling mode can be `mirror`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`. For a full explanation of each mode, click [here](#mode-explanations).
