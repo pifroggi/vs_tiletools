@@ -1,14 +1,43 @@
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
 
 [project]
 name = "vs_tiletools"
-version = "0.1.0"
-description = "Collection of Tiling Related Functions for VapourSynth."
+version = "1.0.0.dev0"
+description = "Spatial and Temporal Tiling, Padding, and related Utilities for VapourSynth."
+readme = "README.md"
+requires-python = ">=3.12"
 authors = [{ name = "pifroggi" }]
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
+
+keywords = [
+	"vapoursynth",
+	"video",
+	"tiling",
+	"padding",
+	"cropping",
+	"feather",
+	"blend",
+	"overlap",
+	"duplicate detection",
+	"filtering",
+	"encoding"
+]
+
+classifiers = [
+	"Programming Language :: Python :: 3",
+	"Topic :: Multimedia :: Video"
+]
+
+dependencies = [
+	"vapoursynth>=74",
+	"vapoursynth-akarin",
+	"vapoursynth-fillborders",
+]
 
 [project.urls]
-Home-page = "https://github.com/pifroggi/vs_tiletools"
+Homepage = "https://github.com/pifroggi/vs_tiletools"
 Repository = "https://github.com/pifroggi/vs_tiletools"
+Issues = "https://github.com/pifroggi/vs_tiletools/issues"
