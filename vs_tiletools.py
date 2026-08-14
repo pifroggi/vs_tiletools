@@ -732,7 +732,7 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[0, 128, 12
         detect = core.resize.Point(clip, format=detect_format.id)
 
     # compute fill amount
-    y, u, v = map(int, color)
+    y, u, v = map(float, color)
     if detect.format.sample_type == vs.FLOAT:
         ref_color           = [y / 255.0, (u - 128.0) / 256.0, (v - 128.0) / 256.0]
         max_color_deviation = [min(tol_y, 255.0) / 255.0, min(tol_u, 255.0) / 256.0, min(tol_v, 255.0) / 256.0]
