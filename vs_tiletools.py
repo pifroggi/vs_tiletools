@@ -830,7 +830,7 @@ def tile(clip, width=256, height=256, overlap=16, padding="mirror"):
         width: Tile width of a single tile in pixels.
         height: Tile height of a single tile in pixels.
         overlap: Overlap from one tile to the next. When overlap is increased the tile size is not altered, so the amount
-            of tiles per frame increases. Can be a single value or a pair for vertical and horizontal `[16, 32]`.
+            of tiles per frame increases. Can be a single value or a pair for horizontal and vertical `[16, 32]`.
         padding: How to handle tiles that are smaller than tile size.  These can be padded with modes `mirror`, `wrap`,
             `repeat`, `fillmargins`, `fixborders`, `telea`, `ns`, `fsr`, `black`, a custom color in 8 bit scale `[128, 128, 128]`, or just
             discarded with `discard`.
