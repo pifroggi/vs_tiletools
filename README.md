@@ -122,7 +122,7 @@ Examples of how the paired functions can be used together.
   Overlap from one tile to the next. When overlap is increased the tile size is not altered, so the amount of tiles per frame increases. Can be a single value or a pair for horizontal and vertical `[16, 32]`.
 
   __*`padding`*__  
-  How to handle tiles that are smaller than tile size. These can be padded with modes `mirror`, `wrap`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, or just discarded with `discard`. For a full explanation of each padding mode, click [here](#mode-explanations).
+  How to handle tiles that are smaller than tile size. These can be padded with modes `mirror`, `wrap`, `repeat`, `fillmargins`, `fixborders`, `telea`, `ns`, `fsr`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, or just discarded with `discard`. For a full explanation of each padding mode, click [here](#mode-explanations).
 
 ---
 
@@ -162,7 +162,7 @@ Examples of how the paired functions can be used together.
   Padding amount in pixel.
   
   __*`mode`*__  
-  Padding mode can be `mirror`, `wrap`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`. For a full explanation of each mode, click [here](#mode-explanations).
+  Padding mode can be `mirror`, `wrap`, `repeat`, `fillmargins`, `fixborders`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`. For a full explanation of each mode, click [here](#mode-explanations).
 
 ---
 
@@ -180,7 +180,7 @@ Examples of how the paired functions can be used together.
   Dimensions will be a multiple of this value. Can be a single value, or a pair for width and height `[64, 32]`.
   
   __*`mode`*__  
-  Mode to reach the next upper multiple via padding can be `mirror`, `wrap`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, or `discard` to crop to the next lower multiple. For a full explanation of each padding mode, click [here](#mode-explanations).
+  Mode to reach the next upper multiple via padding can be `mirror`, `wrap`, `repeat`, `fillmargins`, `fixborders`, `telea`, `ns`, `fsr`, `black`, a custom color in 8-bit scale `[128, 128, 128]`, or `discard` to crop to the next lower multiple. For a full explanation of each padding mode, click [here](#mode-explanations).
 
 ---
 
@@ -232,7 +232,7 @@ Examples of how the paired functions can be used together.
   Fill amount in pixel.
   
   __*`mode`*__  
-  Filling mode can be `mirror`, `wrap`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`. For a full explanation of each mode, click [here](#mode-explanations).
+  Filling mode can be `mirror`, `wrap`, `repeat`, `fillmargins`, `fixborders`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`. For a full explanation of each mode, click [here](#mode-explanations).
 
 ---
 
@@ -260,7 +260,7 @@ Examples of how the paired functions can be used together.
   Tolerance to account for fluctuations in border color. Can be a single value or a list `[24, 24, 24]`.
 
   __*`fill`*__  
-  Filling mode can be `mirror`, `repeat`, `fillmargins`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`. For a full explanation of each mode, click [here](#mode-explanations).
+  Filling mode can be `mirror`, `repeat`, `fillmargins`, `fixborders`, `telea`, `ns`, `fsr`, `black`, or a custom color in 8-bit scale `[128, 128, 128]`. For a full explanation of each mode, click [here](#mode-explanations).
 
 ---
 
