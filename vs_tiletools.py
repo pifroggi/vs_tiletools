@@ -740,7 +740,7 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[0, 128, 12
         bits                = detect.format.bits_per_sample
         scale               = 1 << (bits - 8)
         sample_max          = (1 << bits) - 1
-        ref_color           = [float(y * scale), float(u * scale), float(v * scale)]
+        ref_color           = [y * scale, u * scale, v * scale]
         max_color_deviation = [min(tol_y, 255.0) * scale / sample_max, min(tol_u, 255.0) * scale / sample_max, min(tol_v, 255.0) * scale / sample_max]
     detect = core.acrop.CropValues(detect, top=top, bottom=bottom, left=left, right=right, ref_color=ref_color, max_color_deviation=max_color_deviation)
 
