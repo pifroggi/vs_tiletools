@@ -1343,9 +1343,9 @@ def insert_overlaps(clip, length=20, overlap=5, padding="mirror"):
     if length < 1:
         raise ValueError("vs_tiletools.insert_overlaps: Chunk/temporal window length must be at least 1.")
     if clip.num_frames < length:
-        raise ValueError(f"vs_tiletools.insert_overlaps: Chunk/temporal window length must be longer than clip length.")
+        raise ValueError(f"vs_tiletools.insert_overlaps: Chunk/temporal window length must be shorter than clip length.")
     if overlap < 0 or overlap >= length:
-        raise ValueError("vs_tiletools.insert_overlaps: Overlap can not be negative or smaller than length.")
+        raise ValueError("vs_tiletools.insert_overlaps: Overlap can not be negative or larger than length.")
 
     num_frames  = clip.num_frames
     stride      = length - overlap
