@@ -268,7 +268,7 @@ Examples of how the paired functions can be used together.
   Inpaints areas in a clip based on a mask with various inpainting modes.
   ```python
   import vs_tiletools
-  clip = vs_tiletools.inpaint(clip, mask, mode="telea")
+  clip = vs_tiletools.inpaint(clip, mask, mode="telea", radius=3)
   ```
   
   __*`clip`*__  
@@ -279,6 +279,9 @@ Examples of how the paired functions can be used together.
   
   __*`mode`*__  
   Inpainting mode can be `telea`, `ns`, `fsr` or `shiftmap`. For a full explanation of each mode, click [here](#mode-explanations).
+
+  __*`radius`*__  
+  How many pixels to include in the inpainting calculation for each pixel. Higher is slower. Only affects the `telea` and `ns` modes.
 
 ---
 
