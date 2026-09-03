@@ -182,16 +182,16 @@ def _fillborders(clip, left=0, right=0, top=0, bottom=0, mode="mirror", region="
     mask = core.std.AddBorders(mask, left=left, right=right, top=top, bottom=bottom, color=whit)
     return _maskedmerge(clip, clip_fill, mask)
 
-def _cv_inpaint(clip, left=0, right=0, top=0, bottom=0, mode="telea", region="pad"):
+def _cv_inpaint(clip, left=0, right=0, top=0, bottom=0, mode="telea", region="pad", radius=3):
     if not (isinstance(region, vs.VideoNode)or region in ("pad", "fill")):
         raise ValueError('Region must be "pad", "fill", or a mask clip.')
     clip_format = clip.format
     
     # select inpaint mode
     if mode == "telea":
-        inpaint = lambda c, m: core.cv_inpaint.InpaintTelea(c, m, radius=3)
+        inpaint = lambda c, m: core.cv_inpaint.InpaintTelea(c, m, radius=radius)
     elif mode == "ns":
-        inpaint = lambda c, m: core.cv_inpaint.InpaintNS(c, m, radius=3)
+        inpaint = lambda c, m: core.cv_inpaint.InpaintNS(c, m, radius=radius)
     elif mode == "fsr":
         inpaint = lambda c, m: core.cv_inpaint.InpaintFSR(c, m)
     elif mode == "shiftmap":
@@ -557,7 +557,7 @@ def mod(clip, modulus=64, mode="mirror"):
     return _pad_core(clip, right=pad_w, bottom=pad_h, mode=mode, write_props=True)  # call even if pad is 0, so props are written and auto crop still works 
 
 
-def inpaint(clip, mask, mode="telea"):
+def inpaint(clip, mask, mode="telea", radius=3):
     """Inpaints areas in a clip based on a mask with various inpainting modes.
 
     Args:
@@ -565,6 +565,7 @@ def inpaint(clip, mask, mode="telea"):
         mask: Black and white mask clip where white means inpainting. Can be a single frame long, or longer and different each
             frame. If too short, the last frame will be looped. Can be any format and doesn't have to match the base clip.
         mode: Inpainting mode can be `telea`, `ns`, `fsr`, or `shiftmap`.
+        radius: How many pixels to include in the inpainting calculation for each pixel. Only affects the `telea` and `ns` modes.
     """
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.inpaint: Clip must be a vapoursynth clip.")
@@ -599,7 +600,7 @@ def inpaint(clip, mask, mode="telea"):
 
     # inpaint
     if isinstance(mode, str) and (mode in cv_modes or mode == "shiftmap"):
-        return _cv_inpaint(clip, mode=mode, region=mask)
+        return _cv_inpaint(clip, mode=mode, region=mask, radius=radius)
     else:
         raise TypeError("vs_tiletools.inpaint: Mode must be 'telea', 'ns', 'fsr', or 'shiftmap'.")
 
