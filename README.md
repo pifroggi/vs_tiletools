@@ -45,7 +45,7 @@ A collection of spatial and temporal tiling and padding utilities for VapourSynt
 ```
 pip install -U vs_tiletools
 ```
-* Some Padding/Filling/ing modes require installing [cv_](https://github.com/dnjulek/VapourSynth-cv_) *(optional)*.
+* Some Padding/Filling/Inpainting modes require installing [cv_inpaint](https://github.com/dnjulek/VapourSynth-cv_inpaint) *(optional)*.
 * Function Autofill requires installing [autocrop](https://github.com/Irrational-Encoding-Wizardry/vapoursynth-autocrop) *(optional)*.
 * Functions Markdups/Skipdups require installing [libvship](https://codeberg.org/Line-fr/Vship/releases) *(optional, v4.0.0 or newer)*.
 
