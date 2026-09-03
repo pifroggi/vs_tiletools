@@ -565,7 +565,7 @@ def inpaint(clip, mask, mode="telea", radius=3):
         mask: Black and white mask clip where white means inpainting. Can be a single frame long, or longer and different each
             frame. If too short, the last frame will be looped. Can be any format and doesn't have to match the base clip.
         mode: Inpainting mode can be `telea`, `ns`, `fsr`, or `shiftmap`.
-        radius: How many pixels to include in the inpainting calculation for each pixel. Only affects the `telea` and `ns` modes.
+        radius: How many pixels to include in the inpainting calculation for each pixel. Higher is slower. Only affects the `telea` and `ns` modes.
     """
     if not isinstance(clip, vs.VideoNode):
         raise TypeError("vs_tiletools.inpaint: Clip must be a vapoursynth clip.")
