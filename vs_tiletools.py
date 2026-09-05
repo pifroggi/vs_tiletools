@@ -404,7 +404,7 @@ def _extend_core(clip, start=0, end=0, length=None, mode="mirror", write_props=F
     return out
     
     
-def pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
+def pad(clip: vs.VideoNode, left: int = 0, right: int = 0, top: int = 0, bottom: int = 0, mode: str | float | list[float] = "mirror") -> vs.VideoNode:
     """Pads a clip with various padding modes.
 
     Args:
@@ -425,7 +425,7 @@ def pad(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
     return _pad_core(clip, left=left, right=right, top=top, bottom=bottom, mode=mode, write_props=True)
     
     
-def crop(clip, left=None, right=None, top=None, bottom=None):
+def crop(clip: vs.VideoNode, left: int | None = None, right: int | None = None, top: int | None = None, bottom: int | None = None) -> vs.VideoNode:
     """Automatically crops padding added by `pad()` or `mod()`, even if the clip was since resized.
 
     Args:
@@ -504,7 +504,7 @@ def crop(clip, left=None, right=None, top=None, bottom=None):
     return core.std.RemoveFrameProps(clip, props=[prop_key])
 
 
-def mod(clip, modulus=64, mode="mirror"):
+def mod(clip: vs.VideoNode, modulus: int | list[int] = 64, mode: str | float | list[float] = "mirror") -> vs.VideoNode:
     """Pads or crops a clip so width and height are multiples of the given modulus.
 
     Args:
@@ -557,7 +557,7 @@ def mod(clip, modulus=64, mode="mirror"):
     return _pad_core(clip, right=pad_w, bottom=pad_h, mode=mode, write_props=True)  # call even if pad is 0, so props are written and auto crop still works 
 
 
-def inpaint(clip, mask, mode="telea", radius=3):
+def inpaint(clip: vs.VideoNode, mask: vs.VideoNode, mode: str = "telea", radius: int = 3) -> vs.VideoNode:
     """Inpaints areas in a clip based on a mask with various inpainting modes.
 
     Args:
@@ -605,7 +605,7 @@ def inpaint(clip, mask, mode="telea", radius=3):
         raise TypeError("vs_tiletools.inpaint: Mode must be 'telea', 'ns', 'fsr', or 'shiftmap'.")
 
 
-def fill(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
+def fill(clip: vs.VideoNode, left: int = 0, right: int = 0, top: int = 0, bottom: int = 0, mode: str | float | list[float] = "mirror") -> vs.VideoNode:
     """Fills the borders of a clip with various filling modes. Basically padding, but inwards.
 
     Args:
@@ -666,7 +666,7 @@ def fill(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
     return core.std.AddBorders(clip, left=left, right=right, top=top, bottom=bottom, color=color)
 
 
-def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[0, 128, 128], tol=24, fill="mirror"):
+def autofill(clip: vs.VideoNode, left: int = 0, right: int = 0, top: int = 0, bottom: int = 0, offset: int = 0, color: list[float] = [0, 128, 128], tol: float | list[float] = 24, fill: str | float | list[float] = "mirror") -> vs.VideoNode:
     """Detects uniform colored borders (like letterboxes/pillarboxes) and fills them with various filling modes.
 
     Args:
@@ -780,7 +780,7 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[0, 128, 12
     return out
 
 
-def croprandom(clip, width=256, height=256, seed=0):
+def croprandom(clip: vs.VideoNode, width: int = 256, height: int = 256, seed: int = 0) -> vs.VideoNode:
     """Crops to the given dimensions, but randomly repositions the crop window each frame.
 
     Args:
@@ -822,7 +822,7 @@ def croprandom(clip, width=256, height=256, seed=0):
     return core.std.FrameEval(base, _crop, clip_src=[clip])
 
 
-def tile(clip, width=256, height=256, overlap=16, padding="mirror"):
+def tile(clip: vs.VideoNode, width: int = 256, height: int = 256, overlap: int | list[int] = 16, padding: str | float | list[float] = "mirror") -> vs.VideoNode:
     """Splits a clip into tiles of fixed dimensions to reduce resource requirements. Outputs a clip with all tiles in order.
     All filters applied to the tiled clip should be spatial only.
 
@@ -929,7 +929,7 @@ def tile(clip, width=256, height=256, overlap=16, padding="mirror"):
     return core.std.SetFrameProp(out, prop=prop_key, data=[cfg_str])
 
 
-def untile(clip, fade=False, full_width=None, full_height=None, overlap=None):
+def untile(clip: vs.VideoNode, fade: bool = False, full_width: int | None = None, full_height: int | None = None, overlap: int | list[int] | None = None) -> vs.VideoNode:
     """Automatically reassembles a clip tiled with `tile()`, even if tiles were since resized.
 
     Args:
@@ -1174,7 +1174,7 @@ def untile(clip, fade=False, full_width=None, full_height=None, overlap=None):
     return core.std.RemoveFrameProps(full, props=[prop_key])
 
 
-def extend(clip, start=0, end=0, length=None, mode="mirror"):
+def extend(clip: vs.VideoNode, start: int = 0, end: int = 0, length: int | None = None, mode: str | float | list[float] = "mirror") -> vs.VideoNode:
     """Extends (temporally pads) a clip using various padding modes.
 
     Args:
@@ -1193,7 +1193,7 @@ def extend(clip, start=0, end=0, length=None, mode="mirror"):
     return _extend_core(clip=clip, start=start, end=end, length=length, mode=mode, write_props=True)
 
 
-def trim(clip, start=None, end=None, length=None):
+def trim(clip: vs.VideoNode, start: int | None = None, end: int | None = None, length: int | None = None) -> vs.VideoNode:
     """Automatically trims temporal padding added by `extend()`.
     
     Args:
@@ -1260,7 +1260,7 @@ def trim(clip, start=None, end=None, length=None):
     return core.std.RemoveFrameProps(out, props=[prop_key])
 
 
-def crossfade(clipa, clipb, length=10):
+def crossfade(clipa: vs.VideoNode, clipb: vs.VideoNode, length: int = 10) -> vs.VideoNode:
     """Crossfades between two clips without FrameEval/ModifyFrame.
 
     Args:
@@ -1321,7 +1321,7 @@ def crossfade(clipa, clipb, length=10):
     return core.std.Splice(parts)
 
 
-def insert_overlaps(clip, length=20, overlap=5, padding="mirror"):
+def insert_overlaps(clip: vs.VideoNode, length: int = 20, overlap: int = 5, padding: str | float | list[float] | None = "mirror") -> vs.VideoNode:
     """Inserts temporal overlaps at the end of fixed length chunks/temporal windows into the clip. That means a chunk with 
     `length=20` and `overlap=5` will produce a clip with this frame pattern: `0–19`, `15–34`, `30–49`, and so on.
     In combination with the `trim_overlaps()` function, the inserted overlaps can then be used to crossfade between chunks and
@@ -1407,7 +1407,7 @@ def insert_overlaps(clip, length=20, overlap=5, padding="mirror"):
     return core.std.SetFrameProp(out, prop=prop_key, data=[cfg_str])
 
 
-def trim_overlaps(clip, fade=False, full_length=None, window_length=None, overlap=None):
+def trim_overlaps(clip: vs.VideoNode, fade: bool = False, full_length: int | None = None, window_length: int | None = None, overlap: int | None = None) -> vs.VideoNode:
     """Automatically removes the overlaps iserted by `insert_overlaps()` and optionally uses them to crossfade between chunks/windows.
 
     Args:
@@ -1486,7 +1486,7 @@ def trim_overlaps(clip, fade=False, full_length=None, window_length=None, overla
     return core.std.RemoveFrameProps(out, props=[prop_key])
 
 
-def markdups(clip, thresh=0.3):
+def markdups(clip: vs.VideoNode, thresh: float = 0.3) -> vs.VideoNode:
     """Marks up to 5 consecutive frames as duplicates if they are near identical, which can later be skipped using `skipdups()`. 
 
     Args:
@@ -1529,7 +1529,7 @@ def markdups(clip, thresh=0.3):
     return marked
 
 
-def skipdups(clip, prop_src=None, debug=False):
+def skipdups(clip: vs.VideoNode, prop_src: vs.VideoNode | None = None, debug: bool = False) -> vs.VideoNode:
     """Skips processing of up to 5 consecutive duplicate frames marked by `markdups()`. That means the marked frames will copy
     one of the previous 5 frames instead of submitting the current frame for processing. This speeds up heavy filters
     sandwiched inbetween `markdups()` and `skipdups()`.
