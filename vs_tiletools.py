@@ -19,9 +19,6 @@ def _expr(clips, expr, format=None):
     else:
         return core.std.Expr(clips, expr, format=format)
 
-def _clamp8(x):
-    return max(0, min(255, x))
-
 def _check_modulus(value, subsampling, parameter, function_name, clip_format):
     if subsampling > 1 and value % subsampling != 0:
         raise ValueError(f"vs_tiletools.{function_name}: {parameter} must be a multiple of {subsampling} for format {clip_format.name} due to chroma subsampling.")
@@ -696,7 +693,7 @@ def autofill(clip: vs.VideoNode, left: int = 0, right: int = 0, top: int = 0, bo
         raise ValueError("vs_tiletools.autofill: Color values must be in range 0–255.")
     
     # normalize tol
-    num_planes  = clip.format.num_planes
+    num_planes = clip_format.num_planes
     if isinstance(tol, Real):
         tol = [float(tol)]
     elif isinstance(tol, (list, tuple)) and len(tol) > 0 and all(isinstance(v, Real) for v in tol):
@@ -714,9 +711,15 @@ def autofill(clip: vs.VideoNode, left: int = 0, right: int = 0, top: int = 0, bo
     # checks
     if min(left, right, top, bottom) < 0:
         raise ValueError("vs_tiletools.autofill: Max fill values can not be negative.")
+    if left + right >= clip.width or top + bottom >= clip.height:
+        raise ValueError("vs_tiletools.autofill: Max fill values must be smaller than clip dimensions.")
     if not any((left, right, top, bottom)):
         return clip
-
+    
+    # check autocrop version
+    if "ref_color" not in core.acrop.CropValues.signature:
+        raise RuntimeError("vs_tiletools.autofill: You have an old incompatible version of autocrop installed. Please remove the plugin manually, then do 'pip install -U vapoursynth-autocrop' to install a compatible version.")
+    
     # check subsampling
     sub_w = 1 << (clip_format.subsampling_w or 0)
     sub_h = 1 << (clip_format.subsampling_h or 0)
@@ -727,22 +730,30 @@ def autofill(clip: vs.VideoNode, left: int = 0, right: int = 0, top: int = 0, bo
     _check_modulus(abs(offset), sub_w, "Offset",         "autofill", clip_format)
     _check_modulus(abs(offset), sub_h, "Offset",         "autofill", clip_format)
 
-    # convert to integer if needed
-    if clip_format.sample_type != vs.INTEGER:
-        clip_format_int = core.query_video_format(clip_format.color_family, vs.INTEGER, 16, clip_format.subsampling_w, clip_format.subsampling_h)
-        clip = core.resize.Point(clip, format=clip_format_int.id)
+    # convert 16bit float to 32bit float for autocrop detection
+    detect = clip
+    if clip_format.sample_type == vs.FLOAT and clip_format.bits_per_sample != 32:
+        detect_format = core.query_video_format(clip_format.color_family, vs.FLOAT, 32, clip_format.subsampling_w, clip_format.subsampling_h)
+        detect = core.resize.Point(clip, format=detect_format.id)
 
     # compute fill amount
-    y, u, v    = map(int, color)  # no color nomalization needed, cropvalues plugin takes 8bit directly and scales
-    color_low  = [_clamp8(y - tol_y), _clamp8(u - tol_u), _clamp8(v - tol_v)]
-    color_high = [_clamp8(y + tol_y), _clamp8(u + tol_u), _clamp8(v + tol_v)]
-    clip       = core.acrop.CropValues(clip, top=top, bottom=bottom, left=left, right=right, color=color_low, color_second=color_high)
+    y, u, v = map(float, color)
+    if detect.format.sample_type == vs.FLOAT:
+        ref_color           = [y / 255.0, (u - 128.0) / 256.0, (v - 128.0) / 256.0]
+        max_color_deviation = [min(tol_y, 255.0) / 255.0, min(tol_u, 255.0) / 256.0, min(tol_v, 255.0) / 256.0]
+    else:
+        bits                = detect.format.bits_per_sample
+        scale               = 1 << (bits - 8)
+        sample_max          = (1 << bits) - 1
+        ref_color           = [y * scale, u * scale, v * scale]
+        max_color_deviation = [min(tol_y, 255.0) * scale / sample_max, min(tol_u, 255.0) * scale / sample_max, min(tol_v, 255.0) * scale / sample_max]
+    detect = core.acrop.CropValues(detect, top=top, bottom=bottom, left=left, right=right, ref_color=ref_color, max_color_deviation=max_color_deviation)
 
     # fill mode or solid color
     fb = isinstance(fill, str) and fill in fb_modes
     cv = isinstance(fill, str) and fill in cv_modes
     if not fb and not cv:
-        fill_color = _normalize_color(fill, clip.format, "autofill")
+        fill_color = _normalize_color(fill, clip_format, "autofill")
         if fill_color is False:
             raise TypeError("vs_tiletools.autofill: Fill must be 'mirror', 'repeat', 'fillmargins', 'fixborders', 'telea', 'ns', 'fsr', 'black', or custom color values [128, 128, 128].")
 
@@ -772,12 +783,7 @@ def autofill(clip: vs.VideoNode, left: int = 0, right: int = 0, top: int = 0, bo
             cropped = core.std.Crop(clip, left=l, right=r, top=t, bottom=b)
             return core.std.AddBorders(cropped, left=l, right=r, top=t, bottom=b, color=fill_color)
         
-    out = core.std.FrameEval(clip, _fill, prop_src=[clip], clip_src=[clip])
-
-    # convert back to original format if needed
-    if clip_format.sample_type != vs.INTEGER:
-        return core.resize.Point(out, format=clip_format.id)
-    return out
+    return core.std.FrameEval(clip, _fill, prop_src=[detect], clip_src=[clip])
 
 
 def croprandom(clip: vs.VideoNode, width: int = 256, height: int = 256, seed: int = 0) -> vs.VideoNode:
