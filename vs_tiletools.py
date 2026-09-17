@@ -662,7 +662,7 @@ def fill(clip, left=0, right=0, top=0, bottom=0, mode="mirror"):
     return core.std.AddBorders(clip, left=left, right=right, top=top, bottom=bottom, color=color)
 
 
-def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[0, 128, 128], tol=24, fill="mirror"):
+def autofill(clip: vs.VideoNode, left: int = 0, right: int = 0, top: int = 0, bottom: int = 0, offset: int = 0, color: list[float] = [0, 128, 128], tol: float | list[float] = 24, fill: str | float | list[float] = "mirror") -> vs.VideoNode:
     """Detects uniform colored borders (like letterboxes/pillarboxes) and fills them with various filling modes.
 
     Args:
@@ -714,7 +714,11 @@ def autofill(clip, left=0, right=0, top=0, bottom=0, offset=0, color=[0, 128, 12
         raise ValueError("vs_tiletools.autofill: Max fill values must be smaller than clip dimensions.")
     if not any((left, right, top, bottom)):
         return clip
-
+    
+    # check autocrop version
+    if "ref_color" not in core.acrop.CropValues.signature:
+        raise RuntimeError("vs_tiletools.autofill: You have an old incompatible version of autocrop installed. Please remove the plugin manually, then do 'pip install -U vapoursynth-autocrop' to install a compatible version.")
+    
     # check subsampling
     sub_w = 1 << (clip_format.subsampling_w or 0)
     sub_h = 1 << (clip_format.subsampling_h or 0)
