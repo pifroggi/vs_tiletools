@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vs_tiletools"
-version = "1.0.0.dev0"
+version = "1.0.0.dev1"
 description = "Spatial and Temporal Tiling, Padding, and related Utilities for VapourSynth."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -34,6 +34,7 @@ classifiers = [
 dependencies = [
 	"vapoursynth>=74",
 	"vapoursynth-akarin",
+	"vapoursynth-autocrop",
 	"vapoursynth-fillborders",
 ]
 
@@ -41,3 +42,4 @@ dependencies = [
 Homepage = "https://github.com/pifroggi/vs_tiletools"
 Repository = "https://github.com/pifroggi/vs_tiletools"
 Issues = "https://github.com/pifroggi/vs_tiletools/issues"
+Changelog = "https://github.com/pifroggi/vs_tiletools/releases"
