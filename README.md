@@ -89,7 +89,7 @@ Examples of how the paired functions can be used together.
   ```python
   import vs_tiletools
   clip = vs_tiletools.insert_overlaps(clip, length=10, overlap=4) # creates a temporal overlap of 4 frames
-  clip = vs_undistort.tensorrt(clip, temp_window=10)              # filter has 10 input frames and 10 output frames
+  clip = vs_undistort(clip, temp_window=10)                       # filter has 10 input frames and 10 output frames
   clip = vs_tiletools.trim_overlaps(clip, fade=True)              # uses the overlap to fade between chunks/windows
   ```
 
