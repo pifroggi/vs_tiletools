@@ -71,7 +71,7 @@ def _backshift(c, n):
 def _maskedmerge(clipa, clipb, mask):
     # makes maskedmerge work on half float formats
     clipa_format = clipa.format
-    if clipa_format.sample_type == vs.FLOAT and clipa_format.bits_per_sample == 16:  # use expr for float16
+    if clipa_format.sample_type == vs.FLOAT and clipa_format.bits_per_sample == 16 and vs.__version__.release_major < 78:  # use expr for float16 on older vapoursynth versions
         if clipa_format.num_planes > 1:
             if mask.format.color_family == vs.GRAY and (clipa_format.subsampling_w or clipa_format.subsampling_h):  # support subsampling
                 w = clipa.width  >> clipa_format.subsampling_w
