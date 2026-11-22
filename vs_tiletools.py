@@ -139,35 +139,31 @@ def _fillborders_core(clip, left=0, right=0, top=0, bottom=0, mode="mirror", pad
     return clip
 
 def _fillborders(clip, left=0, right=0, top=0, bottom=0, mode="mirror", region="pad"):
-    # adds support for all formats to fillborders and fixes broken modes
+    # fixes fillborders broken modes
     if region not in ("pad", "fill"):
         raise ValueError('Region must be "pad" or "fill".')
     clip_format = clip.format
     
     # fillmargins is broken with lower than 12bit
     broken_fillmargins = mode == "fillmargins" and  (clip_format.sample_type == vs.INTEGER and clip_format.bits_per_sample  < 12)
-    # fixborders is broken in RGB or when not 16bit 
-    broken_fixborders  = mode == "fixborders"  and ((clip_format.sample_type == vs.INTEGER and clip_format.bits_per_sample != 16) or clip_format.color_family == vs.RGB)
+    # fixborders is broken in RGB or with integers other than 16bit or with float 16bit
+    broken_fixborders  = mode == "fixborders"  and ((clip_format.sample_type == vs.INTEGER and clip_format.bits_per_sample != 16) or (clip_format.sample_type == vs.FLOAT and clip_format.bits_per_sample == 16) or clip_format.color_family == vs.RGB)
     
-    # if already integer or not broken mode use directly
-    if clip_format.sample_type == vs.INTEGER and not (broken_fillmargins or broken_fixborders):
+    # if not broken mode use directly
+    if not (broken_fillmargins or broken_fixborders):
         return _fillborders_core(clip, left=left, right=right, top=top, bottom=bottom, mode=mode, pad=region=="pad")
     
-    # if fixborders and RGB, convert to YUV and mask later
-    rgb_to_yuv = mode == "fixborders" and clip_format.color_family == vs.RGB
-    if rgb_to_yuv:
-        family = vs.YUV
-        matrix = {"matrix_s": "709"}
-    else:
-        family = clip_format.color_family
-        matrix = {}
+    # find working format
+    rgb_to_yuv  = mode == "fixborders" and clip_format.color_family == vs.RGB
+    family      = vs.YUV if rgb_to_yuv else clip_format.color_family
+    bits        = 32 if clip_format.sample_type == vs.FLOAT else 16  # promote to highest bits
+    proc_format = core.query_video_format(family, clip_format.sample_type, bits, clip_format.subsampling_w, clip_format.subsampling_h)
     
-    # convert to 16bit, fillborders, convert back
-    clip_format_int = core.query_video_format(family, vs.INTEGER, 16, clip_format.subsampling_w, clip_format.subsampling_h)
-    clip_fill = core.resize.Point(clip, format=clip_format_int.id, **matrix)
+    # convert, fillborders, convert back
+    clip_fill = core.resize.Point(clip, format=proc_format.id, **({"matrix_s": "709"} if rgb_to_yuv else {}))
     clip_fill = _fillborders_core(clip_fill, left=left, right=right, top=top, bottom=bottom, mode=mode, pad=region=="pad")
     clip_fill = core.resize.Point(clip_fill, format=clip_format.id)
-    if clip_format.sample_type == vs.INTEGER and not rgb_to_yuv:  # if original was integer and no rgb to yuv convertion was needed, masking to protect inner values is not needed
+    if not rgb_to_yuv:  # if no rgb to yuv conversion was needed, masking to protect inner values is not needed
         return clip_fill
     
     # keep original values inside, use filled border outside
